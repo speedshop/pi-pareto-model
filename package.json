@@ -1,0 +1,41 @@
+{
+  "name": "pi-pareto-model",
+  "version": "0.1.0",
+  "description": "Pareto-efficient Smart, Time, and Cost model picker for Pi",
+  "type": "module",
+  "license": "MIT",
+  "keywords": ["pi-package", "pi-extension", "model-picker", "pareto"],
+  "files": [
+    "src",
+    "schema",
+    "README.md",
+    "CONTEXT.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "^0.84.2",
+    "@earendil-works/pi-coding-agent": "^0.84.2",
+    "@earendil-works/pi-tui": "^0.84.2",
+    "@types/node": "^24.5.2",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  }
+}

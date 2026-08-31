@@ -1,0 +1,4 @@
+node_modules/
+.pi-subagents/
+.pi/pareto-model-picker.json
+.DS_Store

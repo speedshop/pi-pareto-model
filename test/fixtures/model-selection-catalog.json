@@ -1,0 +1,293 @@
+{
+  "schemaVersion": 1,
+  "catalog": {
+    "id": "fixture-random-model-index",
+    "name": "Random Model Index Fixture",
+    "version": "1.0",
+    "generatedAt": "2026-01-01T00:00:00Z",
+    "sourceUpdatedAt": "2026-01-01T00:00:00Z",
+    "distribution": {
+      "classification": "redistributable",
+      "termsUrl": null,
+      "attribution": "Real model identifiers with entirely fabricated metrics",
+      "allowRedistribution": true
+    },
+    "metricDefinitions": {
+      "smart": {
+        "unit": "random-intelligence-point",
+        "better": "higher",
+        "task": "Fabricated composite evaluation",
+        "methodologyUrl": null
+      },
+      "fast": {
+        "unit": "seconds-per-reference-task",
+        "better": "lower",
+        "task": "Fabricated model task",
+        "methodologyUrl": null
+      },
+      "cheap": {
+        "unit": "USD-per-reference-task",
+        "better": "lower",
+        "task": "Fabricated model task",
+        "methodologyUrl": null
+      }
+    },
+    "provenance": {
+      "fixture": true,
+      "warning": "Model names and Pi aliases are real. Every metric is random test data and must not be interpreted as a benchmark result."
+    }
+  },
+  "variants": [
+    {
+      "id": "fixture:model:claude-opus-5-high",
+      "creator": "Anthropic",
+      "displayName": "Claude Opus 5 (high)",
+      "checkpoint": "claude-opus-5",
+      "quantization": null,
+      "reasoning": { "label": "High" },
+      "metrics": { "smart": 99, "fast": 120, "cheap": 8 },
+      "aliases": [
+        {
+          "provider": "anthropic",
+          "modelId": "claude-opus-5",
+          "piThinkingLevel": "high",
+          "equivalence": "verified"
+        }
+      ],
+      "provenance": { "fixtureScenario": "smartest metered extreme" }
+    },
+    {
+      "id": "fixture:model:gpt-5-6-sol-medium",
+      "creator": "OpenAI",
+      "displayName": "GPT-5.6 Sol (medium)",
+      "checkpoint": "gpt-5.6-sol",
+      "quantization": null,
+      "reasoning": { "label": "Medium" },
+      "metrics": { "smart": 96, "fast": 80, "cheap": 6 },
+      "aliases": [
+        {
+          "provider": "openai-codex",
+          "modelId": "gpt-5.6-sol",
+          "piThinkingLevel": "medium",
+          "equivalence": "verified"
+        }
+      ],
+      "provenance": { "fixtureScenario": "current subscription model" }
+    },
+    {
+      "id": "fixture:model:gpt-5-5-high",
+      "creator": "OpenAI",
+      "displayName": "GPT-5.5 (high)",
+      "checkpoint": "gpt-5.5",
+      "quantization": null,
+      "reasoning": { "label": "High" },
+      "metrics": { "smart": 92, "fast": 55, "cheap": 4.5 },
+      "aliases": [
+        {
+          "provider": "openai-codex",
+          "modelId": "gpt-5.5",
+          "piThinkingLevel": "high",
+          "equivalence": "verified"
+        }
+      ],
+      "provenance": { "fixtureScenario": "highest of three reasoning levels" }
+    },
+    {
+      "id": "fixture:model:gpt-5-5-medium",
+      "creator": "OpenAI",
+      "displayName": "GPT-5.5 (medium)",
+      "checkpoint": "gpt-5.5",
+      "quantization": null,
+      "reasoning": { "label": "Medium" },
+      "metrics": { "smart": 89, "fast": 40, "cheap": 3 },
+      "aliases": [
+        {
+          "provider": "openai-codex",
+          "modelId": "gpt-5.5",
+          "piThinkingLevel": "medium",
+          "equivalence": "verified"
+        }
+      ],
+      "provenance": { "fixtureScenario": "middle of three reasoning levels" }
+    },
+    {
+      "id": "fixture:model:gpt-5-5-low",
+      "creator": "OpenAI",
+      "displayName": "GPT-5.5 (low)",
+      "checkpoint": "gpt-5.5",
+      "quantization": null,
+      "reasoning": { "label": "Low" },
+      "metrics": { "smart": 84, "fast": 25, "cheap": 1.6 },
+      "aliases": [
+        {
+          "provider": "openai-codex",
+          "modelId": "gpt-5.5",
+          "piThinkingLevel": "low",
+          "equivalence": "verified"
+        }
+      ],
+      "provenance": { "fixtureScenario": "lowest of three reasoning levels" }
+    },
+    {
+      "id": "fixture:model:kimi-k3-high",
+      "creator": "Moonshot AI",
+      "displayName": "Kimi K3 (high)",
+      "checkpoint": "Kimi-K3",
+      "quantization": null,
+      "reasoning": { "label": "High" },
+      "metrics": { "smart": 87, "fast": 30, "cheap": 2.5 },
+      "aliases": [
+        {
+          "provider": "baseten",
+          "modelId": "moonshotai/Kimi-K3",
+          "piThinkingLevel": "high",
+          "equivalence": "verified"
+        },
+        {
+          "provider": "fireworks",
+          "modelId": "accounts/fireworks/routers/kimi-k3-us",
+          "piThinkingLevel": "high",
+          "equivalence": "verified"
+        }
+      ],
+      "provenance": { "fixtureScenario": "equivalent routes in two authenticated providers" }
+    },
+    {
+      "id": "fixture:model:glm-5-2-high",
+      "creator": "Z.ai",
+      "displayName": "GLM-5.2 (high)",
+      "checkpoint": "GLM-5.2",
+      "quantization": null,
+      "reasoning": { "label": "High" },
+      "metrics": { "smart": 82, "fast": 18, "cheap": 1.8 },
+      "aliases": [
+        {
+          "provider": "baseten",
+          "modelId": "zai-org/GLM-5.2",
+          "piThinkingLevel": "high",
+          "equivalence": "verified"
+        }
+      ],
+      "provenance": { "fixtureScenario": "balanced metered model" }
+    },
+    {
+      "id": "fixture:model:deepseek-v4-pro-high",
+      "creator": "DeepSeek",
+      "displayName": "DeepSeek V4 Pro (high)",
+      "checkpoint": "DeepSeek-V4-Pro",
+      "quantization": null,
+      "reasoning": { "label": "High" },
+      "metrics": { "smart": 76, "fast": 13, "cheap": 1.3 },
+      "aliases": [
+        {
+          "provider": "baseten",
+          "modelId": "deepseek-ai/DeepSeek-V4-Pro",
+          "piThinkingLevel": "high",
+          "equivalence": "verified"
+        }
+      ],
+      "provenance": { "fixtureScenario": "metered frontier model" }
+    },
+    {
+      "id": "fixture:model:inkling-medium",
+      "creator": "Thinking Machines",
+      "displayName": "Inkling (medium)",
+      "checkpoint": "inkling",
+      "quantization": null,
+      "reasoning": { "label": "Medium" },
+      "metrics": { "smart": 69, "fast": 9, "cheap": 0.8 },
+      "aliases": [
+        {
+          "provider": "baseten",
+          "modelId": "thinkingmachines/inkling",
+          "piThinkingLevel": "medium",
+          "equivalence": "verified"
+        }
+      ],
+      "provenance": { "fixtureScenario": "middle frontier model" }
+    },
+    {
+      "id": "fixture:model:gpt-5-4-mini-low",
+      "creator": "OpenAI",
+      "displayName": "GPT-5.4 mini (low)",
+      "checkpoint": "gpt-5.4-mini",
+      "quantization": null,
+      "reasoning": { "label": "Low" },
+      "metrics": { "smart": 60, "fast": 6, "cheap": 0.5 },
+      "aliases": [
+        {
+          "provider": "openai-codex",
+          "modelId": "gpt-5.4-mini",
+          "piThinkingLevel": "low",
+          "equivalence": "verified"
+        }
+      ],
+      "provenance": { "fixtureScenario": "fast subscription model" }
+    },
+    {
+      "id": "fixture:model:gpt-5-6-luna-medium",
+      "creator": "OpenAI",
+      "displayName": "GPT-5.6 Luna (medium)",
+      "checkpoint": "gpt-5.6-luna",
+      "quantization": null,
+      "reasoning": { "label": "Medium" },
+      "metrics": { "smart": 57, "fast": 4.5, "cheap": 0.4 },
+      "aliases": [
+        {
+          "provider": "openai-codex",
+          "modelId": "gpt-5.6-luna",
+          "piThinkingLevel": "medium",
+          "equivalence": "verified"
+        }
+      ],
+      "provenance": { "fixtureScenario": "selectable Luna subscription route" }
+    },
+    {
+      "id": "fixture:model:glm-5-2-fast-high",
+      "creator": "Z.ai",
+      "displayName": "GLM-5.2 Fast (high)",
+      "checkpoint": "GLM-5.2-Fast",
+      "quantization": null,
+      "reasoning": { "label": "High" },
+      "metrics": { "smart": 54, "fast": 3, "cheap": 0.3 },
+      "aliases": [
+        {
+          "provider": "baseten",
+          "modelId": "zai-org/GLM-5.2-Fast",
+          "piThinkingLevel": "high",
+          "equivalence": "verified"
+        }
+      ],
+      "provenance": { "fixtureScenario": "fastest metered frontier model" }
+    },
+    {
+      "id": "fixture:model:gpt-oss-120b-medium",
+      "creator": "OpenAI",
+      "displayName": "GPT OSS 120B (medium)",
+      "checkpoint": "gpt-oss-120b",
+      "quantization": null,
+      "reasoning": { "label": "Medium" },
+      "metrics": { "smart": 50, "fast": 10, "cheap": 1 },
+      "aliases": [
+        {
+          "provider": "baseten",
+          "modelId": "openai/gpt-oss-120b",
+          "piThinkingLevel": "medium",
+          "equivalence": "verified"
+        }
+      ],
+      "provenance": { "fixtureScenario": "strictly dominated and expected to be hidden" }
+    },
+    {
+      "id": "fixture:model:artifact-only",
+      "creator": "Example Research",
+      "displayName": "Artifact-Only Model",
+      "checkpoint": null,
+      "quantization": null,
+      "reasoning": null,
+      "metrics": { "smart": 45, "fast": 2, "cheap": 0.08 },
+      "aliases": [],
+      "provenance": { "fixtureScenario": "unselectable full-catalog model" }
+    }
+  ]
+}
