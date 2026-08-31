@@ -34,7 +34,7 @@ function regrets(candidate: Candidate, scales: ReturnType<typeof regretScales>):
   };
 }
 
-function scores(values: Regrets, weights: Regrets, axes: readonly ComparisonAxis[]): [number, number] {
+function regretScores(values: Regrets, weights: Regrets, axes: readonly ComparisonAxis[]): [number, number] {
   if (axes.length === 0) return [0, 0];
   const weighted = axes.map((axis) => values[axis] * weights[axis]);
   return [Math.max(...weighted), weighted.reduce((sum, value) => sum + value, 0) / weighted.length];
@@ -52,12 +52,19 @@ export function rankCandidates(
   referenceCandidates: readonly Candidate[] = candidates,
 ): Candidate[] {
   const scales = regretScales(referenceCandidates);
-  return [...candidates].sort((left, right) => {
-    const [leftMax, leftMean] = scores(regrets(left, scales), allocation, axes);
-    const [rightMax, rightMean] = scores(regrets(right, scales), allocation, axes);
-    return leftMax - rightMax
-      || leftMean - rightMean
-      || left.variant.displayName.localeCompare(right.variant.displayName)
-      || left.providerLabel.localeCompare(right.providerLabel);
+  const maxWeight = Math.max(1, ...axes.map((axis) => allocation[axis]));
+  const ranked = candidates.map((candidate) => {
+    const [maxRegret, meanRegret] = regretScores(regrets(candidate, scales), allocation, axes);
+    return {
+      candidate: { ...candidate, score: 1 - maxRegret / maxWeight },
+      maxRegret,
+      meanRegret,
+    };
   });
+  return ranked.sort((left, right) =>
+    left.maxRegret - right.maxRegret
+      || left.meanRegret - right.meanRegret
+      || left.candidate.variant.displayName.localeCompare(right.candidate.variant.displayName)
+      || left.candidate.providerLabel.localeCompare(right.candidate.providerLabel)
+  ).map(({ candidate }) => candidate);
 }

@@ -20,6 +20,8 @@ export interface Candidate {
   effectiveCost: number;
   included: boolean;
   current: boolean;
+  score?: number;
+  dominatedBy?: Candidate;
   thinkingLevel?: ThinkingLevel;
 }
 

@@ -5,7 +5,7 @@ import fixture from "./fixtures/model-selection-catalog.json" with { type: "json
 import type { ModelSelectionCatalog } from "../src/catalog/types.js";
 import { allocationsFromPresets, copyAllocations, DEFAULT_PRESETS, type PresetDefinitions } from "../src/ranking/power.js";
 import type { Candidate } from "../src/routes/types.js";
-import { createMetricColorScale } from "../src/ui/metric-colors.js";
+import { createMetricScale } from "../src/ui/metric-scale.js";
 import { ModelPicker, type PickerOptions, type PickerResult } from "../src/ui/picker.js";
 
 const catalog = fixture as unknown as ModelSelectionCatalog;
@@ -17,8 +17,9 @@ const candidates: Candidate[] = catalog.variants.slice(0, 9).map((variant, index
   effectiveCost: variant.metrics.cheap,
   included: index === 2,
   current: index === 0,
+  score: 1 - index / 10,
 }));
-const metricColors = createMetricColorScale(catalog.variants);
+const metricScale = createMetricScale(catalog.variants);
 const theme = {
   fg: (_color: string, value: string) => value,
   bold: (value: string) => value,
@@ -26,7 +27,7 @@ const theme = {
 
 function createPicker(options: Omit<
   PickerOptions,
-  "theme" | "metricColors" | "presets" | "allocations" | "defaultAllocations" | "onAllocationChange" | "onSaveDefault"
+  "theme" | "metricScale" | "presets" | "allocations" | "defaultAllocations" | "onAllocationChange" | "onSaveDefault"
 > & {
   onAllocationChange?: PickerOptions["onAllocationChange"];
   onSaveDefault?: PickerOptions["onSaveDefault"];
@@ -35,7 +36,7 @@ function createPicker(options: Omit<
   return new ModelPicker({
     ...options,
     theme,
-    metricColors,
+    metricScale,
     presets: Object.keys(presets),
     allocations: copyAllocations(defaultAllocations),
     defaultAllocations,
@@ -45,34 +46,58 @@ function createPicker(options: Omit<
 }
 
 describe("model picker", () => {
-  it("renders five rows, columns, and the current-model checkmark", () => {
+  it("fills the available page, renders data columns, and marks the current model", () => {
     const picker = createPicker({ getCandidates: () => candidates, done: () => {} });
     const rendered = picker.render(100).join("\n");
     expect(rendered).toContain("Model variant");
     expect(rendered).toContain("Provider");
     expect(rendered).toContain("Smart");
+    expect(rendered).toContain("Score");
+    expect(rendered).toContain("██████");
     expect(rendered).toContain("✓");
-    expect(rendered).toContain("1–5 of 9");
+    expect(rendered).toContain("1–9 of 9");
+    expect(rendered).toContain("$4.500 ·incl");
     expect(rendered).toContain("power: tab preset · s/t/c change · r reset · p save");
     expect(rendered).toContain("/ search · d dominated · a all · u subs");
   });
 
   it("keeps every line within the available width", () => {
     const picker = createPicker({ getCandidates: () => candidates, done: () => {} });
-    for (const width of [45, 80, 120]) {
+    for (const width of [20, 22, 30, 40, 45, 55, 70, 80, 120]) {
       expect(picker.render(width).every((line) => visibleWidth(line) <= width)).toBe(true);
     }
   });
 
+  it("renders each candidate on one line at narrow widths", () => {
+    const lines = createPicker({ getCandidates: () => candidates, done: () => {} }).render(45);
+    const header = lines.findIndex((line) => line.startsWith("Model variant"));
+    const status = lines.findIndex((line) => line.includes(" of 9 ·"));
+    expect(lines.slice(header + 1, status - 1)).toHaveLength(candidates.length);
+  });
+
+  it("marks truncated data labels with an ellipsis", () => {
+    const longLabel = {
+      ...candidates[0]!,
+      variant: { ...candidates[0]!.variant, displayName: "A model variant name that cannot fit in its column" },
+      providerLabel: "a-provider-name-that-cannot-fit",
+    };
+    const picker = createPicker({ getCandidates: () => [longLabel], done: () => {} });
+    expect(picker.render(70).join("\n")).toContain("…");
+  });
+
   it("pages, changes presets, and toggles full scope", () => {
     let result: PickerResult | undefined;
-    const picker = createPicker({ getCandidates: () => candidates, done: (value) => { result = value; } });
-    for (let index = 0; index < 5; index += 1) picker.handleInput("\x1b[B");
-    expect(picker.render(100).join("\n")).toContain("6–9 of 9");
+    const picker = createPicker({
+      getCandidates: () => candidates,
+      availableHeight: () => 16,
+      done: (value) => { result = value; },
+    });
+    for (let index = 0; index < 8; index += 1) picker.handleInput("\x1b[B");
+    expect(picker.render(100).join("\n")).toContain("9–9 of 9");
     picker.handleInput("\t");
     picker.handleInput("\t");
     expect(picker.render(100)[0]).toContain("smart");
-    expect(picker.render(100).join("\n")).toContain("1–5 of 9");
+    expect(picker.render(100).join("\n")).toContain("1–8 of 9");
     picker.handleInput("a");
     expect(picker.render(100).join("\n")).toContain("all models");
     picker.handleInput("u");
@@ -85,9 +110,9 @@ describe("model picker", () => {
       planner: { allocation: { smart: 6, fast: 6, cheap: 0 }, subscriptionRoutes: "only", paretoCost: "reference" },
     };
     const picker = createPicker({ getCandidates: () => candidates, done: () => {} }, presets);
-    expect(picker.render(100).join("\n")).toContain("Preset: advisor (1/2)");
+    expect(picker.render(100).join("\n")).toContain("Preset: advisor ·");
     picker.handleInput("\t");
-    expect(picker.render(100).join("\n")).toContain("Preset: planner (2/2)");
+    expect(picker.render(100).join("\n")).toContain("Preset: planner ·");
     expect(picker.render(100).join("\n")).toContain("Smart ■■■■■■");
   });
 
@@ -110,7 +135,7 @@ describe("model picker", () => {
     expect(activeAxes).toEqual(["cheap"]);
     expect(rendered).toContain("Smart —");
     expect(rendered).toContain("Time —");
-    expect(rendered).toContain("1–5 of 9");
+    expect(rendered).toContain("1–9 of 9");
   });
 
   it("resets and saves the current Preset allocation", () => {
@@ -132,17 +157,21 @@ describe("model picker", () => {
     expect(picker.render(100).join("\n")).toContain("power: tab preset");
   });
 
-  it("toggles dominated candidates", () => {
+  it("separates and labels dominated candidates", () => {
     let showDominated = false;
+    const dominated = { ...candidates[8]!, dominatedBy: candidates[0]! };
     const picker = createPicker({
       getCandidates: (_preset, _scope, _axes, _allocation, nextShowDominated) => {
         showDominated = nextShowDominated;
-        return candidates;
+        return nextShowDominated ? [...candidates.slice(0, 8), dominated] : candidates.slice(0, 8);
       },
       done: () => {},
     });
     picker.handleInput("d");
-    expect(picker.render(100).join("\n")).toContain("· dominated shown");
+    const rendered = picker.render(120).join("\n");
+    expect(rendered).toContain("· dominated shown");
+    expect(rendered).toContain("← Claude Opus 5");
+    expect(rendered).toContain("────────");
     expect(showDominated).toBe(true);
   });
 

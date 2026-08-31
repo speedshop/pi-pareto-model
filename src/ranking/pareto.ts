@@ -21,9 +21,17 @@ export function dominates(
     && axes.some((axis) => better(left, right, axis));
 }
 
+export function dominatorOf(
+  candidate: Candidate,
+  candidates: readonly Candidate[],
+  axes: readonly ComparisonAxis[] = COMPARISON_AXES,
+): Candidate | undefined {
+  return candidates.find((other) => other !== candidate && dominates(other, candidate, axes));
+}
+
 export function paretoFront(
   candidates: readonly Candidate[],
   axes: readonly ComparisonAxis[] = COMPARISON_AXES,
 ): Candidate[] {
-  return candidates.filter((right) => !candidates.some((left) => left !== right && dominates(left, right, axes)));
+  return candidates.filter((candidate) => dominatorOf(candidate, candidates, axes) === undefined);
 }

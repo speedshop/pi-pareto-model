@@ -1,7 +1,7 @@
 import fixture from "./fixtures/model-selection-catalog.json" with { type: "json" };
 import { describe, expect, it } from "vitest";
 import type { ModelSelectionCatalog } from "../src/catalog/types.js";
-import { paretoFront } from "../src/ranking/pareto.js";
+import { dominatorOf, paretoFront } from "../src/ranking/pareto.js";
 import { DEFAULT_PRESETS } from "../src/ranking/power.js";
 import { eligibleCandidates, rankCandidates } from "../src/ranking/rank.js";
 import type { Candidate, Preset } from "../src/routes/types.js";
@@ -22,10 +22,12 @@ function rank(items: readonly Candidate[], preset: Preset, reference: readonly C
 }
 
 describe("Pareto ranking", () => {
-  it("removes only the intentionally dominated fixture variant", () => {
+  it("removes only the intentionally dominated fixture variant and identifies its dominator", () => {
     const front = paretoFront(candidates);
+    const dominated = candidates.find((candidate) => candidate.variant.displayName === "GPT OSS 120B (medium)")!;
     expect(front).toHaveLength(13);
-    expect(front.map((candidate) => candidate.variant.displayName)).not.toContain("GPT OSS 120B (medium)");
+    expect(front).not.toContain(dominated);
+    expect(dominatorOf(dominated, candidates)?.variant.displayName).toBeTruthy();
   });
 
   it("recomputes the frontier using only enabled axes", () => {
@@ -39,6 +41,12 @@ describe("Pareto ranking", () => {
     const first = rank(front, preset).map((candidate) => candidate.key);
     const second = rank([...front].reverse(), preset).map((candidate) => candidate.key);
     expect(first).toEqual(second);
+  });
+
+  it("exposes a normalized composite score in ranking order", () => {
+    const ranked = rank(paretoFront(candidates), "overall");
+    expect(ranked.every((candidate) => candidate.score !== undefined && candidate.score >= 0 && candidate.score <= 1)).toBe(true);
+    expect(ranked[0]!.score).toBeGreaterThanOrEqual(ranked.at(-1)!.score!);
   });
 
   it("moves different tradeoffs to the top for focused presets", () => {

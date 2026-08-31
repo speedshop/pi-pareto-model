@@ -4,14 +4,14 @@ import type { Component } from "@earendil-works/pi-tui";
 import { configuredPresets, loadConfig, saveConfiguredAllocation } from "./catalog/config.js";
 import { loadCatalog } from "./catalog/load.js";
 import type { ModelSelectionCatalog, ThinkingLevel } from "./catalog/types.js";
-import { paretoFront } from "./ranking/pareto.js";
+import { dominatorOf, paretoFront } from "./ranking/pareto.js";
 import { allocationsFromPresets, copyAllocations, DEFAULT_PRESETS, enabledAxes, type PowerAllocation, type PresetAllocations, type PresetDefinitions } from "./ranking/power.js";
 import { eligibleCandidates, rankCandidates } from "./ranking/rank.js";
 import { buildCandidates } from "./routes/build-candidates.js";
 import { detectSubscriptionProviders } from "./routes/subscriptions.js";
 import type { Candidate, CatalogScope, ComparisonAxis, PiModel, Preset } from "./routes/types.js";
 import { restoreAllocations, restoreDisabledSubscriptions, saveAllocations, saveDisabledSubscriptions } from "./state.js";
-import { createMetricColorScale } from "./ui/metric-colors.js";
+import { createMetricScale } from "./ui/metric-scale.js";
 import { ModelPicker, type PickerResult } from "./ui/picker.js";
 import { SubscriptionPicker } from "./ui/subscriptions.js";
 
@@ -120,11 +120,21 @@ export default function paretoModelPicker(pi: ExtensionAPI): void {
       effectiveCost: candidate.variant.metrics.cheap,
     }));
     const referenceFrontier = paretoFront(referenceCandidates, axes);
-    const effectiveFrontier = definition.paretoCost === "reference" ? referenceFrontier : paretoFront(eligible, axes);
-    const rankedFrontier = rankCandidates(effectiveFrontier, allocation, axes, referenceFrontier);
-    if (!showDominated) return rankedFrontier;
+    const comparisonCandidates = definition.paretoCost === "reference" ? referenceCandidates : eligible;
+    const effectiveFrontier = paretoFront(comparisonCandidates, axes);
     const frontierKeys = new Set(effectiveFrontier.map((candidate) => candidate.key));
-    const dominated = eligible.filter((candidate) => !frontierKeys.has(candidate.key));
+    const frontier = eligible.filter((candidate) => frontierKeys.has(candidate.key));
+    const rankedFrontier = rankCandidates(frontier, allocation, axes, referenceFrontier);
+    if (!showDominated) return rankedFrontier;
+
+    const eligibleByKey = new Map(eligible.map((candidate) => [candidate.key, candidate]));
+    const comparisonByKey = new Map(comparisonCandidates.map((candidate) => [candidate.key, candidate]));
+    const dominated = eligible.filter((candidate) => !frontierKeys.has(candidate.key)).map((candidate) => {
+      const comparison = comparisonByKey.get(candidate.key)!;
+      const dominator = dominatorOf(comparison, effectiveFrontier, axes);
+      const actualDominator = dominator ? eligibleByKey.get(dominator.key) : undefined;
+      return { ...candidate, ...(actualDominator ? { dominatedBy: actualDominator } : {}) };
+    });
     return [...rankedFrontier, ...rankCandidates(dominated, allocation, axes, referenceFrontier)];
   }
 
@@ -175,7 +185,7 @@ export default function paretoModelPicker(pi: ExtensionAPI): void {
 
       const { catalog, presets, allocations, defaultAllocations, configPath } = resources;
       const presetNames = Object.keys(presets);
-      const metricColors = createMetricColorScale(catalog.variants);
+      const metricScale = createMetricScale(catalog.variants);
       let preset: Preset = presetNames[0]!;
       let scope: CatalogScope = "available";
       let showDominated = false;
@@ -216,7 +226,8 @@ export default function paretoModelPicker(pi: ExtensionAPI): void {
             initialShowDominated: showDominated,
             initialQuery: query,
             getCandidates,
-            metricColors,
+            metricScale,
+            availableHeight: () => tui.terminal.rows,
             done,
           });
           return rerendering(picker, () => tui.requestRender());

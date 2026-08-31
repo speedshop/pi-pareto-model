@@ -2,10 +2,16 @@ import type { Theme } from "@earendil-works/pi-coding-agent";
 import { decodeKittyPrintable, Key, matchesKey, truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
 import { enabledAxes, routePower, TOTAL_POWER, type PowerAllocation, type PresetAllocations } from "../ranking/power.js";
 import type { Candidate, CatalogScope, ComparisonAxis, Preset } from "../routes/types.js";
-import { formatCost, formatSmart, formatTime, padToWidth } from "./format.js";
-import type { MetricColorScale } from "./metric-colors.js";
+import { costPrecision, formatCost, formatSmart, formatTime, padStartToWidth, padToWidth, timeUnit, type TimeUnit } from "./format.js";
+import type { MetricScale } from "./metric-scale.js";
 
-const PAGE_SIZE = 5;
+const SCORE_BAR_WIDTH = 6;
+
+interface DisplayFormats {
+  timeUnit: TimeUnit;
+  costPrecision: number;
+  maxScore: number;
+}
 
 interface PickerState {
   preset: Preset;
@@ -37,14 +43,16 @@ export interface PickerOptions {
     allocation: PowerAllocation,
     showDominated: boolean,
   ) => Candidate[];
-  metricColors: MetricColorScale;
+  metricScale: MetricScale;
+  availableHeight?: () => number;
   done: (result: PickerResult) => void;
 }
 
 export class ModelPicker implements Component {
   private readonly theme: Theme;
   private readonly getCandidates: PickerOptions["getCandidates"];
-  private readonly metricColors: MetricColorScale;
+  private readonly metricScale: MetricScale;
+  private readonly availableHeight: () => number;
   private readonly presets: readonly Preset[];
   private readonly allocations: PresetAllocations;
   private readonly defaultAllocations: PresetAllocations;
@@ -61,7 +69,8 @@ export class ModelPicker implements Component {
   constructor(options: PickerOptions) {
     this.theme = options.theme;
     this.getCandidates = options.getCandidates;
-    this.metricColors = options.metricColors;
+    this.metricScale = options.metricScale;
+    this.availableHeight = options.availableHeight ?? (() => 24);
     this.presets = options.presets;
     this.allocations = options.allocations;
     this.defaultAllocations = options.defaultAllocations;
@@ -218,7 +227,7 @@ export class ModelPicker implements Component {
     const labels = this.presets.map((preset) => preset === this.preset
       ? this.theme.fg("accent", this.theme.bold(preset))
       : this.theme.fg("muted", preset));
-    return `Preset: ${active} (${this.presets.indexOf(this.preset) + 1}/${this.presets.length}) · ${labels.join(" | ")}`;
+    return `Preset: ${active} · ${labels.join(" | ")}`;
   }
 
   private allocationLine(): string {
@@ -246,8 +255,8 @@ export class ModelPicker implements Component {
   }
 
   private label(text: string, candidate: Candidate, selected: boolean): string {
-    if (!candidate.selectable) return this.theme.fg("dim", text);
-    return selected ? this.theme.fg("accent", text) : text;
+    if (selected) return this.theme.fg("accent", text);
+    return !candidate.selectable || candidate.dominatedBy ? this.theme.fg("dim", text) : text;
   }
 
   private axisHeader(axis: ComparisonAxis, text: string, width: number): string {
@@ -255,81 +264,144 @@ export class ModelPicker implements Component {
     return this.allocation()[axis] > 0 ? header : this.theme.fg("dim", header);
   }
 
-  private metric(axis: ComparisonAxis, value: number, text: string): string {
-    return this.metricColors.color(axis, value, text);
+  private metric(axis: ComparisonAxis, value: number, text: string, candidate: Candidate, selected: boolean): string {
+    return this.label(`${text} ${this.metricScale.position(axis, value)}`, candidate, selected);
   }
 
-  private wideRow(candidate: Candidate, selected: boolean, width: number): string {
+  private scoreBar(candidate: Candidate, formats: DisplayFormats, selected: boolean): string {
+    const ratio = formats.maxScore > 0 ? (candidate.score ?? 0) / formats.maxScore : 0;
+    const filled = Math.round(Math.max(0, Math.min(1, ratio)) * SCORE_BAR_WIDTH);
+    return this.label("█".repeat(filled) + "·".repeat(SCORE_BAR_WIDTH - filled), candidate, selected);
+  }
+
+  private costText(candidate: Candidate, precision: number): string {
+    const referenceCost = formatCost(candidate.variant.metrics.cheap, precision);
+    return `${referenceCost}${candidate.included ? " ·incl" : ""}`;
+  }
+
+  private wideRow(candidate: Candidate, selected: boolean, width: number, formats: DisplayFormats): string {
     const smartWidth = 7;
     const timeWidth = 8;
-    const costWidth = 11;
-    const providerWidth = Math.min(20, Math.max(12, Math.floor(width * 0.2)));
-    const modelWidth = Math.max(16, width - smartWidth - timeWidth - costWidth - providerWidth - 6);
+    const costWidth = 14;
+    const scoreWidth = SCORE_BAR_WIDTH;
+    const providerWidth = Math.min(20, Math.max(12, Math.floor(width * 0.18)));
+    const modelWidth = Math.max(16, width - smartWidth - timeWidth - costWidth - scoreWidth - providerWidth - 7);
     const prefix = this.label(selected ? "› " : "  ", candidate, selected);
     const current = candidate.current ? " ✓" : "";
-    const model = this.label(padToWidth(`${candidate.variant.displayName}${current}`, modelWidth), candidate, selected);
-    const smart = this.metric("smart", candidate.variant.metrics.smart, padToWidth(formatSmart(candidate.variant.metrics.smart), smartWidth));
-    const time = this.metric("fast", candidate.variant.metrics.fast, padToWidth(formatTime(candidate.variant.metrics.fast), timeWidth));
-    const effectiveCost = candidate.included ? 0 : candidate.variant.metrics.cheap;
-    const cost = this.metric("cheap", effectiveCost, padToWidth(candidate.included ? "Included" : formatCost(effectiveCost), costWidth));
-    const provider = this.label(padToWidth(candidate.providerLabel, providerWidth), candidate, selected);
-    return truncateToWidth(`${prefix}${model} ${smart} ${time} ${cost} ${provider}`, width, "");
+    const model = this.label(padToWidth(`${candidate.variant.displayName}${current}`, modelWidth, "…"), candidate, selected);
+    const smartText = padStartToWidth(formatSmart(candidate.variant.metrics.smart), smartWidth - 2);
+    const smart = this.metric("smart", candidate.variant.metrics.smart, smartText, candidate, selected);
+    const timeText = padStartToWidth(formatTime(candidate.variant.metrics.fast, formats.timeUnit), timeWidth - 2);
+    const time = this.metric("fast", candidate.variant.metrics.fast, timeText, candidate, selected);
+    const costText = padStartToWidth(this.costText(candidate, formats.costPrecision), costWidth - 2);
+    const cost = this.metric("cheap", candidate.effectiveCost, costText, candidate, selected);
+    const providerText = candidate.dominatedBy
+      ? `← ${candidate.dominatedBy.variant.displayName} · ${candidate.providerLabel}`
+      : candidate.providerLabel;
+    const provider = this.label(padToWidth(providerText, providerWidth, "…"), candidate, selected);
+    return truncateToWidth(`${prefix}${model} ${smart} ${time} ${cost} ${this.scoreBar(candidate, formats, selected)} ${provider}`, width, "");
   }
 
-  private narrowRows(candidate: Candidate, selected: boolean, width: number): string[] {
+  private narrowColumns(width: number): Array<{ header: string; width: number }> {
+    if (width >= 55) return [
+      { header: "Smart", width: 7 },
+      { header: "Time", width: 8 },
+      { header: "Cost", width: 14 },
+      { header: "Score", width: SCORE_BAR_WIDTH },
+    ];
+    if (width >= 40) return [
+      { header: "Smart", width: 7 },
+      { header: "Time", width: 8 },
+      { header: "Score", width: SCORE_BAR_WIDTH },
+    ];
+    if (width >= 30) return [
+      { header: "Smart", width: 7 },
+      { header: "Score", width: SCORE_BAR_WIDTH },
+    ];
+    if (width >= 22) return [{ header: "Score", width: SCORE_BAR_WIDTH }];
+    return [];
+  }
+
+  private narrowRow(candidate: Candidate, selected: boolean, width: number, formats: DisplayFormats): string {
+    const columns = this.narrowColumns(width);
+    const columnWidth = columns.reduce((sum, column) => sum + column.width, 0) + columns.length;
+    const modelWidth = Math.max(1, width - columnWidth - 2);
     const prefix = this.label(selected ? "› " : "  ", candidate, selected);
     const current = candidate.current ? " ✓" : "";
-    const model = this.label(`${candidate.variant.displayName}${current}`, candidate, selected);
-    const smart = this.metric("smart", candidate.variant.metrics.smart, formatSmart(candidate.variant.metrics.smart));
-    const time = this.metric("fast", candidate.variant.metrics.fast, formatTime(candidate.variant.metrics.fast));
-    const effectiveCost = candidate.included ? 0 : candidate.variant.metrics.cheap;
-    const cost = this.metric("cheap", effectiveCost, candidate.included ? "Included" : formatCost(effectiveCost));
-    const provider = this.label(candidate.providerLabel, candidate, selected);
-    return [
-      truncateToWidth(`${prefix}${model}  Smart ${smart} · Time ${time}`, width, ""),
-      truncateToWidth(`  ${provider} · ${cost}`, width, ""),
-    ];
+    const model = this.label(padToWidth(`${candidate.variant.displayName}${current}`, modelWidth, "…"), candidate, selected);
+    const values = columns.map(({ header, width: columnWidth }) => {
+      if (header === "Score") return this.scoreBar(candidate, formats, selected);
+      if (header === "Smart") {
+        const text = padStartToWidth(formatSmart(candidate.variant.metrics.smart), columnWidth - 2);
+        return this.metric("smart", candidate.variant.metrics.smart, text, candidate, selected);
+      }
+      if (header === "Time") {
+        const text = padStartToWidth(formatTime(candidate.variant.metrics.fast, formats.timeUnit), columnWidth - 2);
+        return this.metric("fast", candidate.variant.metrics.fast, text, candidate, selected);
+      }
+      const text = padStartToWidth(this.costText(candidate, formats.costPrecision), columnWidth - 2);
+      return this.metric("cheap", candidate.effectiveCost, text, candidate, selected);
+    });
+    return `${prefix}${model}${values.map((value) => ` ${value}`).join("")}`;
   }
 
   render(width: number): string[] {
     const candidates = this.candidates();
     if (this.selected >= candidates.length) this.selected = Math.max(0, candidates.length - 1);
-    const pageStart = Math.floor(this.selected / PAGE_SIZE) * PAGE_SIZE;
-    const page = candidates.slice(pageStart, pageStart + PAGE_SIZE);
+    const topLines = this.topLines(width);
+    const rowHeight = 1;
+    const hasDominated = candidates.some((candidate) => candidate.dominatedBy);
+    const fixedLines = topLines.length + 7 + (hasDominated ? 1 : 0);
+    const pageSize = Math.max(1, Math.floor((this.availableHeight() - fixedLines) / rowHeight));
+    const pageStart = Math.floor(this.selected / pageSize) * pageSize;
+    const page = candidates.slice(pageStart, pageStart + pageSize);
+    const formats: DisplayFormats = {
+      timeUnit: timeUnit(candidates.map((candidate) => candidate.variant.metrics.fast)),
+      costPrecision: costPrecision(candidates.map((candidate) => candidate.variant.metrics.cheap)),
+      maxScore: Math.max(0, ...page.map((candidate) => candidate.score ?? 0)),
+    };
     const lines = [
-      ...this.topLines(width).map((line) => truncateToWidth(line, width, "")),
+      ...topLines.map((line) => truncateToWidth(line, width, "")),
       "",
     ];
+    const separatorBefore = (index: number) => {
+      const candidate = candidates[index];
+      const previous = candidates[index - 1];
+      if (candidate?.dominatedBy && previous && !previous.dominatedBy) {
+        lines.push(this.theme.fg("dim", "─".repeat(width)));
+      }
+    };
 
     if (width >= 70) {
-      const providerWidth = Math.min(20, Math.max(12, Math.floor(width * 0.2)));
-      const modelWidth = Math.max(16, width - 7 - 8 - 11 - providerWidth - 6);
+      const providerWidth = Math.min(20, Math.max(12, Math.floor(width * 0.18)));
+      const modelWidth = Math.max(16, width - 7 - 8 - 14 - SCORE_BAR_WIDTH - providerWidth - 7);
       lines.push(truncateToWidth(
         padToWidth("Model variant", modelWidth + 2)
           + " " + this.axisHeader("smart", "Smart", 7)
           + " " + this.axisHeader("fast", "Time", 8)
-          + " " + this.axisHeader("cheap", "Cost", 11)
+          + " " + this.axisHeader("cheap", "Cost", 14)
+          + " " + padToWidth("Score", SCORE_BAR_WIDTH)
           + " " + padToWidth("Provider", providerWidth),
         width,
         "",
       ));
       for (const [index, candidate] of page.entries()) {
-        lines.push(this.wideRow(candidate, pageStart + index === this.selected, width));
+        separatorBefore(pageStart + index);
+        lines.push(this.wideRow(candidate, pageStart + index === this.selected, width, formats));
       }
     } else {
-      lines.push(truncateToWidth("Model variant · Smart · Time / Cost · Provider", width, ""));
+      const columns = this.narrowColumns(width);
+      const columnWidth = columns.reduce((sum, column) => sum + column.width, 0) + columns.length;
+      const modelWidth = Math.max(1, width - columnWidth);
+      lines.push(padToWidth("Model variant", modelWidth, "…")
+        + columns.map((column) => ` ${padToWidth(column.header, column.width)}`).join(""));
       for (const [index, candidate] of page.entries()) {
-        lines.push(...this.narrowRows(candidate, pageStart + index === this.selected, width));
+        separatorBefore(pageStart + index);
+        lines.push(this.narrowRow(candidate, pageStart + index === this.selected, width, formats));
       }
     }
 
-    while (page.length < PAGE_SIZE) {
-      lines.push("");
-      if (width < 70) lines.push("");
-      page.push(undefined as never);
-    }
-
-    const end = Math.min(pageStart + PAGE_SIZE, candidates.length);
+    const end = Math.min(pageStart + pageSize, candidates.length);
     lines.push("");
     lines.push(truncateToWidth(
       `${candidates.length === 0 ? "0" : `${pageStart + 1}–${end}`} of ${candidates.length} · ${this.scope === "available" ? "available models" : "all models"}${this.showDominated ? " · dominated shown" : ""}`,

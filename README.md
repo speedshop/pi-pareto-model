@@ -255,17 +255,13 @@ A Preset with `subscriptionRoutes: "only"` excludes all metered routes when an I
 
 For example, a Preset can remove a similar metered model from its frontier. It does not make a high reasoning level more efficient than a medium level.
 
-The Cost column shows `Included` for an enabled Subscription Route. Press `u` to disable that route for the current Pi session.
+The Cost column keeps the Reference Task Cost visible and adds `·incl` for an enabled Subscription Route. Press `u` to disable that route for the current Pi session.
 
-### Metric colors
+### Metric and score display
 
-The picker calculates metric colors from the full configured dataset.
+Each metric has a `▁`–`▇` position glyph on a linear scale over the full configured dataset. Taller means better on every axis. The scale does not change with the Preset, page, search, catalog scope, or Pareto filter.
 
-- Green is the best dataset value.
-- Red is the worst dataset value.
-- Yellow is between green and red.
-
-The colors do not change with the Preset, page, search, catalog scope, or Pareto filter.
+The Score bar visualizes the normalized largest weighted regret used for the primary ranking. A longer bar is better, and bars are scaled to the best score on the current page. Dominated rows appear below a rule and identify a dominating Model Variant.
 
 ## Catalogs and Provider Routes
 
