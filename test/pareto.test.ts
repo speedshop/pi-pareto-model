@@ -43,12 +43,6 @@ describe("Pareto ranking", () => {
     expect(first).toEqual(second);
   });
 
-  it("exposes a normalized composite score in ranking order", () => {
-    const ranked = rank(paretoFront(candidates), "overall");
-    expect(ranked.every((candidate) => candidate.score !== undefined && candidate.score >= 0 && candidate.score <= 1)).toBe(true);
-    expect(ranked[0]!.score).toBeGreaterThanOrEqual(ranked.at(-1)!.score!);
-  });
-
   it("moves different tradeoffs to the top for focused presets", () => {
     const front = paretoFront(candidates);
     const fast = rank(front, "fast")[0]?.variant.displayName;

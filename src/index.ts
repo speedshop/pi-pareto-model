@@ -11,7 +11,6 @@ import { buildCandidates } from "./routes/build-candidates.js";
 import { detectSubscriptionProviders } from "./routes/subscriptions.js";
 import type { Candidate, CatalogScope, ComparisonAxis, PiModel, Preset } from "./routes/types.js";
 import { restoreAllocations, restoreDisabledSubscriptions, saveAllocations, saveDisabledSubscriptions } from "./state.js";
-import { createMetricScale } from "./ui/metric-scale.js";
 import { ModelPicker, type PickerResult } from "./ui/picker.js";
 import { SubscriptionPicker } from "./ui/subscriptions.js";
 
@@ -185,7 +184,6 @@ export default function paretoModelPicker(pi: ExtensionAPI): void {
 
       const { catalog, presets, allocations, defaultAllocations, configPath } = resources;
       const presetNames = Object.keys(presets);
-      const metricScale = createMetricScale(catalog.variants);
       let preset: Preset = presetNames[0]!;
       let scope: CatalogScope = "available";
       let showDominated = false;
@@ -226,7 +224,6 @@ export default function paretoModelPicker(pi: ExtensionAPI): void {
             initialShowDominated: showDominated,
             initialQuery: query,
             getCandidates,
-            metricScale,
             availableHeight: () => tui.terminal.rows,
             done,
           });

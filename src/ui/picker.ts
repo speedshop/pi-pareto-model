@@ -3,14 +3,13 @@ import { decodeKittyPrintable, Key, matchesKey, truncateToWidth, visibleWidth, t
 import { enabledAxes, routePower, TOTAL_POWER, type PowerAllocation, type PresetAllocations } from "../ranking/power.js";
 import type { Candidate, CatalogScope, ComparisonAxis, Preset } from "../routes/types.js";
 import { costPrecision, formatCost, formatSmart, formatTime, padStartToWidth, padToWidth, timeUnit, type TimeUnit } from "./format.js";
-import type { MetricScale } from "./metric-scale.js";
-
-const SCORE_BAR_WIDTH = 6;
+import { createMetricScale, type MetricScale } from "./metric-scale.js";
 
 interface DisplayFormats {
   timeUnit: TimeUnit;
   costPrecision: number;
-  maxScore: number;
+  metricScale: MetricScale;
+  metricBarWidth: number;
 }
 
 interface PickerState {
@@ -43,7 +42,6 @@ export interface PickerOptions {
     allocation: PowerAllocation,
     showDominated: boolean,
   ) => Candidate[];
-  metricScale: MetricScale;
   availableHeight?: () => number;
   done: (result: PickerResult) => void;
 }
@@ -51,7 +49,6 @@ export interface PickerOptions {
 export class ModelPicker implements Component {
   private readonly theme: Theme;
   private readonly getCandidates: PickerOptions["getCandidates"];
-  private readonly metricScale: MetricScale;
   private readonly availableHeight: () => number;
   private readonly presets: readonly Preset[];
   private readonly allocations: PresetAllocations;
@@ -69,7 +66,6 @@ export class ModelPicker implements Component {
   constructor(options: PickerOptions) {
     this.theme = options.theme;
     this.getCandidates = options.getCandidates;
-    this.metricScale = options.metricScale;
     this.availableHeight = options.availableHeight ?? (() => 24);
     this.presets = options.presets;
     this.allocations = options.allocations;
@@ -264,14 +260,15 @@ export class ModelPicker implements Component {
     return this.allocation()[axis] > 0 ? header : this.theme.fg("dim", header);
   }
 
-  private metric(axis: ComparisonAxis, value: number, text: string, candidate: Candidate, selected: boolean): string {
-    return this.label(`${text} ${this.metricScale.position(axis, value)}`, candidate, selected);
-  }
-
-  private scoreBar(candidate: Candidate, formats: DisplayFormats, selected: boolean): string {
-    const ratio = formats.maxScore > 0 ? (candidate.score ?? 0) / formats.maxScore : 0;
-    const filled = Math.round(Math.max(0, Math.min(1, ratio)) * SCORE_BAR_WIDTH);
-    return this.label("█".repeat(filled) + "·".repeat(SCORE_BAR_WIDTH - filled), candidate, selected);
+  private metric(
+    axis: ComparisonAxis,
+    value: number,
+    text: string,
+    candidate: Candidate,
+    selected: boolean,
+    formats: DisplayFormats,
+  ): string {
+    return this.label(`${text} ${formats.metricScale.bar(axis, value, formats.metricBarWidth)}`, candidate, selected);
   }
 
   private costText(candidate: Candidate, precision: number): string {
@@ -280,45 +277,39 @@ export class ModelPicker implements Component {
   }
 
   private wideRow(candidate: Candidate, selected: boolean, width: number, formats: DisplayFormats): string {
-    const smartWidth = 7;
-    const timeWidth = 8;
-    const costWidth = 14;
-    const scoreWidth = SCORE_BAR_WIDTH;
-    const providerWidth = Math.min(20, Math.max(12, Math.floor(width * 0.18)));
-    const modelWidth = Math.max(16, width - smartWidth - timeWidth - costWidth - scoreWidth - providerWidth - 7);
+    const smartWidth = 6 + formats.metricBarWidth;
+    const timeWidth = 7 + formats.metricBarWidth;
+    const costWidth = 13 + formats.metricBarWidth;
+    const providerWidth = Math.min(20, Math.max(12, Math.floor(width * 0.15)));
+    const modelWidth = Math.max(16, width - smartWidth - timeWidth - costWidth - providerWidth - 6);
     const prefix = this.label(selected ? "› " : "  ", candidate, selected);
     const current = candidate.current ? " ✓" : "";
     const model = this.label(padToWidth(`${candidate.variant.displayName}${current}`, modelWidth, "…"), candidate, selected);
-    const smartText = padStartToWidth(formatSmart(candidate.variant.metrics.smart), smartWidth - 2);
-    const smart = this.metric("smart", candidate.variant.metrics.smart, smartText, candidate, selected);
-    const timeText = padStartToWidth(formatTime(candidate.variant.metrics.fast, formats.timeUnit), timeWidth - 2);
-    const time = this.metric("fast", candidate.variant.metrics.fast, timeText, candidate, selected);
-    const costText = padStartToWidth(this.costText(candidate, formats.costPrecision), costWidth - 2);
-    const cost = this.metric("cheap", candidate.effectiveCost, costText, candidate, selected);
+    const metricPadding = formats.metricBarWidth + 1;
+    const smartText = padStartToWidth(formatSmart(candidate.variant.metrics.smart), smartWidth - metricPadding);
+    const smart = this.metric("smart", candidate.variant.metrics.smart, smartText, candidate, selected, formats);
+    const timeText = padStartToWidth(formatTime(candidate.variant.metrics.fast, formats.timeUnit), timeWidth - metricPadding);
+    const time = this.metric("fast", candidate.variant.metrics.fast, timeText, candidate, selected, formats);
+    const costText = padStartToWidth(this.costText(candidate, formats.costPrecision), costWidth - metricPadding);
+    const cost = this.metric("cheap", candidate.effectiveCost, costText, candidate, selected, formats);
     const providerText = candidate.dominatedBy
       ? `← ${candidate.dominatedBy.variant.displayName} · ${candidate.providerLabel}`
       : candidate.providerLabel;
     const provider = this.label(padToWidth(providerText, providerWidth, "…"), candidate, selected);
-    return truncateToWidth(`${prefix}${model} ${smart} ${time} ${cost} ${this.scoreBar(candidate, formats, selected)} ${provider}`, width, "");
+    return truncateToWidth(`${prefix}${model} ${smart} ${time} ${cost} ${provider}`, width, "");
   }
 
   private narrowColumns(width: number): Array<{ header: string; width: number }> {
-    if (width >= 55) return [
+    if (width >= 50) return [
       { header: "Smart", width: 7 },
       { header: "Time", width: 8 },
       { header: "Cost", width: 14 },
-      { header: "Score", width: SCORE_BAR_WIDTH },
     ];
-    if (width >= 40) return [
+    if (width >= 35) return [
       { header: "Smart", width: 7 },
       { header: "Time", width: 8 },
-      { header: "Score", width: SCORE_BAR_WIDTH },
     ];
-    if (width >= 30) return [
-      { header: "Smart", width: 7 },
-      { header: "Score", width: SCORE_BAR_WIDTH },
-    ];
-    if (width >= 22) return [{ header: "Score", width: SCORE_BAR_WIDTH }];
+    if (width >= 25) return [{ header: "Smart", width: 7 }];
     return [];
   }
 
@@ -330,17 +321,16 @@ export class ModelPicker implements Component {
     const current = candidate.current ? " ✓" : "";
     const model = this.label(padToWidth(`${candidate.variant.displayName}${current}`, modelWidth, "…"), candidate, selected);
     const values = columns.map(({ header, width: columnWidth }) => {
-      if (header === "Score") return this.scoreBar(candidate, formats, selected);
       if (header === "Smart") {
         const text = padStartToWidth(formatSmart(candidate.variant.metrics.smart), columnWidth - 2);
-        return this.metric("smart", candidate.variant.metrics.smart, text, candidate, selected);
+        return this.metric("smart", candidate.variant.metrics.smart, text, candidate, selected, formats);
       }
       if (header === "Time") {
         const text = padStartToWidth(formatTime(candidate.variant.metrics.fast, formats.timeUnit), columnWidth - 2);
-        return this.metric("fast", candidate.variant.metrics.fast, text, candidate, selected);
+        return this.metric("fast", candidate.variant.metrics.fast, text, candidate, selected, formats);
       }
       const text = padStartToWidth(this.costText(candidate, formats.costPrecision), columnWidth - 2);
-      return this.metric("cheap", candidate.effectiveCost, text, candidate, selected);
+      return this.metric("cheap", candidate.effectiveCost, text, candidate, selected, formats);
     });
     return `${prefix}${model}${values.map((value) => ` ${value}`).join("")}`;
   }
@@ -358,7 +348,12 @@ export class ModelPicker implements Component {
     const formats: DisplayFormats = {
       timeUnit: timeUnit(candidates.map((candidate) => candidate.variant.metrics.fast)),
       costPrecision: costPrecision(candidates.map((candidate) => candidate.variant.metrics.cheap)),
-      maxScore: Math.max(0, ...page.map((candidate) => candidate.score ?? 0)),
+      metricScale: createMetricScale(candidates.map((candidate) => ({
+        smart: candidate.variant.metrics.smart,
+        fast: candidate.variant.metrics.fast,
+        cheap: candidate.effectiveCost,
+      }))),
+      metricBarWidth: width >= 80 ? 4 : 1,
     };
     const lines = [
       ...topLines.map((line) => truncateToWidth(line, width, "")),
@@ -372,15 +367,17 @@ export class ModelPicker implements Component {
       }
     };
 
-    if (width >= 70) {
-      const providerWidth = Math.min(20, Math.max(12, Math.floor(width * 0.18)));
-      const modelWidth = Math.max(16, width - 7 - 8 - 14 - SCORE_BAR_WIDTH - providerWidth - 7);
+    if (width >= 80) {
+      const smartWidth = 6 + formats.metricBarWidth;
+      const timeWidth = 7 + formats.metricBarWidth;
+      const costWidth = 13 + formats.metricBarWidth;
+      const providerWidth = Math.min(20, Math.max(12, Math.floor(width * 0.15)));
+      const modelWidth = Math.max(16, width - smartWidth - timeWidth - costWidth - providerWidth - 6);
       lines.push(truncateToWidth(
         padToWidth("Model variant", modelWidth + 2)
-          + " " + this.axisHeader("smart", "Smart", 7)
-          + " " + this.axisHeader("fast", "Time", 8)
-          + " " + this.axisHeader("cheap", "Cost", 14)
-          + " " + padToWidth("Score", SCORE_BAR_WIDTH)
+          + " " + this.axisHeader("smart", "Smart", smartWidth)
+          + " " + this.axisHeader("fast", "Time", timeWidth)
+          + " " + this.axisHeader("cheap", "Cost", costWidth)
           + " " + padToWidth("Provider", providerWidth),
         width,
         "",

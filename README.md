@@ -257,11 +257,11 @@ For example, a Preset can remove a similar metered model from its frontier. It d
 
 The Cost column keeps the Reference Task Cost visible and adds `·incl` for an enabled Subscription Route. Press `u` to disable that route for the current Pi session.
 
-### Metric and score display
+### Metric display
 
-Each metric has a `▁`–`▇` position glyph on a linear scale over the full configured dataset. Taller means better on every axis. The scale does not change with the Preset, page, search, catalog scope, or Pareto filter.
+Each metric uses a linear scale over the candidates in the current result list. Narrow layouts show a `▁`–`▇` position glyph; wider layouts show a four-cell microbar with fractional blocks. Taller or fuller means better on every axis. The scale remains stable while paging and recomputes when the Preset, search, catalog scope, or Pareto filter changes.
 
-The Score bar visualizes the normalized largest weighted regret used for the primary ranking. A longer bar is better, and bars are scaled to the best score on the current page. Dominated rows appear below a rule and identify a dominating Model Variant.
+Dominated rows appear below a rule and identify a dominating Model Variant.
 
 ## Catalogs and Provider Routes
 

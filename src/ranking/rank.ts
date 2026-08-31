@@ -52,14 +52,9 @@ export function rankCandidates(
   referenceCandidates: readonly Candidate[] = candidates,
 ): Candidate[] {
   const scales = regretScales(referenceCandidates);
-  const maxWeight = Math.max(1, ...axes.map((axis) => allocation[axis]));
   const ranked = candidates.map((candidate) => {
     const [maxRegret, meanRegret] = regretScores(regrets(candidate, scales), allocation, axes);
-    return {
-      candidate: { ...candidate, score: 1 - maxRegret / maxWeight },
-      maxRegret,
-      meanRegret,
-    };
+    return { candidate, maxRegret, meanRegret };
   });
   return ranked.sort((left, right) =>
     left.maxRegret - right.maxRegret

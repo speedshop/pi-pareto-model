@@ -5,7 +5,6 @@ import fixture from "./fixtures/model-selection-catalog.json" with { type: "json
 import type { ModelSelectionCatalog } from "../src/catalog/types.js";
 import { allocationsFromPresets, copyAllocations, DEFAULT_PRESETS, type PresetDefinitions } from "../src/ranking/power.js";
 import type { Candidate } from "../src/routes/types.js";
-import { createMetricScale } from "../src/ui/metric-scale.js";
 import { ModelPicker, type PickerOptions, type PickerResult } from "../src/ui/picker.js";
 
 const catalog = fixture as unknown as ModelSelectionCatalog;
@@ -17,9 +16,7 @@ const candidates: Candidate[] = catalog.variants.slice(0, 9).map((variant, index
   effectiveCost: variant.metrics.cheap,
   included: index === 2,
   current: index === 0,
-  score: 1 - index / 10,
 }));
-const metricScale = createMetricScale(catalog.variants);
 const theme = {
   fg: (_color: string, value: string) => value,
   bold: (value: string) => value,
@@ -27,7 +24,7 @@ const theme = {
 
 function createPicker(options: Omit<
   PickerOptions,
-  "theme" | "metricScale" | "presets" | "allocations" | "defaultAllocations" | "onAllocationChange" | "onSaveDefault"
+  "theme" | "presets" | "allocations" | "defaultAllocations" | "onAllocationChange" | "onSaveDefault"
 > & {
   onAllocationChange?: PickerOptions["onAllocationChange"];
   onSaveDefault?: PickerOptions["onSaveDefault"];
@@ -36,7 +33,6 @@ function createPicker(options: Omit<
   return new ModelPicker({
     ...options,
     theme,
-    metricScale,
     presets: Object.keys(presets),
     allocations: copyAllocations(defaultAllocations),
     defaultAllocations,
@@ -52,8 +48,6 @@ describe("model picker", () => {
     expect(rendered).toContain("Model variant");
     expect(rendered).toContain("Provider");
     expect(rendered).toContain("Smart");
-    expect(rendered).toContain("Score");
-    expect(rendered).toContain("██████");
     expect(rendered).toContain("✓");
     expect(rendered).toContain("1–9 of 9");
     expect(rendered).toContain("$4.500 ·incl");
@@ -66,6 +60,13 @@ describe("model picker", () => {
     for (const width of [20, 22, 30, 40, 45, 55, 70, 80, 120]) {
       expect(picker.render(width).every((line) => visibleWidth(line) <= width)).toBe(true);
     }
+  });
+
+  it("scales metric microbars to the current candidate list", () => {
+    const picker = createPicker({ getCandidates: () => candidates.slice(0, 2), done: () => {} });
+    const rendered = picker.render(100).join("\n");
+    expect(rendered).toContain("99 ████");
+    expect(rendered).toContain("96 ····");
   });
 
   it("renders each candidate on one line at narrow widths", () => {
