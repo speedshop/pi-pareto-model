@@ -105,25 +105,33 @@ export default function paretoModelPicker(pi: ExtensionAPI): void {
     definition: PresetDefinitions[string],
     showDominated = false,
   ) {
-    const candidates = buildCandidates(catalog, {
-      scope,
+    const buildOptions = {
       registry: ctx.modelRegistry,
       ...(ctx.model ? { currentModel: ctx.model as PiModel } : {}),
       currentThinkingLevel: pi.getThinkingLevel() as ThinkingLevel,
       disabledSubscriptions,
-    });
+    };
+    const fullCandidates = buildCandidates(catalog, { ...buildOptions, scope: "full" });
+    const candidates = scope === "full"
+      ? fullCandidates
+      : buildCandidates(catalog, { ...buildOptions, scope });
     const axes = enabledAxes(allocation);
     const eligible = eligibleCandidates(candidates, definition.subscriptionRoutes);
-    const referenceCandidates = eligible.map((candidate) => ({
+    const withReferenceCost = (candidate: Candidate) => ({
       ...candidate,
       effectiveCost: candidate.variant.metrics.cheap,
-    }));
+    });
+    const referenceCandidates = eligible.map(withReferenceCost);
     const referenceFrontier = paretoFront(referenceCandidates, axes);
+    const rankingReferenceFrontier = paretoFront(
+      eligibleCandidates(fullCandidates, definition.subscriptionRoutes).map(withReferenceCost),
+      axes,
+    );
     const comparisonCandidates = definition.paretoCost === "reference" ? referenceCandidates : eligible;
     const effectiveFrontier = paretoFront(comparisonCandidates, axes);
     const frontierKeys = new Set(effectiveFrontier.map((candidate) => candidate.key));
     const frontier = eligible.filter((candidate) => frontierKeys.has(candidate.key));
-    const rankedFrontier = rankCandidates(frontier, allocation, axes, referenceFrontier);
+    const rankedFrontier = rankCandidates(frontier, allocation, axes, rankingReferenceFrontier);
     if (!showDominated) return rankedFrontier;
 
     const eligibleByKey = new Map(eligible.map((candidate) => [candidate.key, candidate]));
@@ -134,7 +142,7 @@ export default function paretoModelPicker(pi: ExtensionAPI): void {
       const actualDominator = dominator ? eligibleByKey.get(dominator.key) : undefined;
       return { ...candidate, ...(actualDominator ? { dominatedBy: actualDominator } : {}) };
     });
-    return [...rankedFrontier, ...rankCandidates(dominated, allocation, axes, referenceFrontier)];
+    return [...rankedFrontier, ...rankCandidates(dominated, allocation, axes, rankingReferenceFrontier)];
   }
 
   async function selectCandidate(candidate: Candidate): Promise<boolean> {

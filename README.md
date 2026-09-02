@@ -251,11 +251,13 @@ Each allocation must use nonnegative integers. The three values must total 12.
 
 ## Ranking
 
-The picker uses percentile ranks. This method prevents metric units from giving one measure too much influence.
+The picker measures each value's distance from the best value relative to that measure's interquartile range. Smart and Cost use their linear values. Time uses logarithmic values, so equal time ratios produce equal regret differences.
 
-For each measure, the best value has zero regret. A worse percentile has more regret.
+The interquartile range is the distance between the 25th and 75th percentile values, not a conversion of values into percentile ranks. It gives the three measures comparable catalog-relative units while preserving the magnitude of gaps between Model Variants.
 
-The picker multiplies each regret by its power value. It first minimizes the largest weighted regret. It then uses mean weighted regret to resolve a tie.
+Ranking scales always use the Full Catalog reference frontier, so filtering unavailable models does not change the scores of remaining Model Variants. Changes to the reference frontier can change every score.
+
+The picker first minimizes each Model Variant's largest power-weighted regret. This prevents exceptional performance on one measure from compensating for unacceptable performance on another. Mean power-weighted regret resolves ties.
 
 The Presets do not use a simple sort on one column.
 
@@ -344,7 +346,7 @@ The policy also excludes OpenRouter, Radius, MiniMax, and other ambiguous or met
 
 ## Catalog requirements
 
-Each Model Variant must have finite Smart, Time, and Cost values. These values cannot be null.
+Each Model Variant must have finite Smart, Time, and Cost values. These values cannot be null. Time must be greater than zero because ranking uses a logarithmic Time scale.
 
 Each selectable route must have an exact, manually verified Pi alias.
 

@@ -103,7 +103,7 @@
           "required": ["smart", "fast", "cheap"],
           "properties": {
             "smart": { "type": "number" },
-            "fast": { "type": "number", "minimum": 0 },
+            "fast": { "type": "number", "exclusiveMinimum": 0 },
             "cheap": { "type": "number", "minimum": 0 }
           }
         },

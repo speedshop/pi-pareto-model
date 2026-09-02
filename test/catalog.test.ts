@@ -15,6 +15,12 @@ describe("catalog validation", () => {
     await expect(validateCatalog(fixture)).rejects.toThrow("schemaVersion");
   });
 
+  it("rejects zero Reference Task Time because ranking uses a logarithmic scale", async () => {
+    const fixture = JSON.parse(await readFile(new URL("./fixtures/model-selection-catalog.json", import.meta.url), "utf8"));
+    fixture.variants[0].metrics.fast = 0;
+    await expect(validateCatalog(fixture)).rejects.toThrow("fast");
+  });
+
   it("rejects duplicate variant ids", async () => {
     const fixture = JSON.parse(await readFile(new URL("./fixtures/model-selection-catalog.json", import.meta.url), "utf8"));
     fixture.variants.push(fixture.variants[0]);

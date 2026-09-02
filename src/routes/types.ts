@@ -11,6 +11,11 @@ export interface ProviderRoute {
   current: boolean;
 }
 
+export interface RankingCalculation {
+  contributions: Record<ComparisonAxis, number>;
+  worstRegret: number;
+}
+
 export interface Candidate {
   key: string;
   variant: CatalogVariant;
@@ -20,6 +25,7 @@ export interface Candidate {
   effectiveCost: number;
   included: boolean;
   current: boolean;
+  ranking?: RankingCalculation;
   dominatedBy?: Candidate;
   thinkingLevel?: ThinkingLevel;
 }

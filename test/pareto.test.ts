@@ -43,12 +43,96 @@ describe("Pareto ranking", () => {
     expect(first).toEqual(second);
   });
 
-  it("moves different tradeoffs to the top for focused presets", () => {
+  it("keeps scores and ordering stable when candidates are filtered", () => {
+    const reference = paretoFront(candidates);
+    const allocation = DEFAULT_PRESETS.overall!.allocation;
+    const rankedFull = rankCandidates(reference, allocation, undefined, reference);
+    const availableKeys = new Set(rankedFull.filter((_candidate, index) => index % 2 === 0).map((candidate) => candidate.key));
+    const rankedAvailable = rankCandidates(
+      reference.filter((candidate) => availableKeys.has(candidate.key)),
+      allocation,
+      undefined,
+      reference,
+    );
+    const fullScores = new Map(rankedFull.map((candidate) => [candidate.key, candidate.ranking!.worstRegret]));
+
+    expect(rankedAvailable.map((candidate) => candidate.key)).toEqual(
+      rankedFull.filter((candidate) => availableKeys.has(candidate.key)).map((candidate) => candidate.key),
+    );
+    for (const candidate of rankedAvailable) {
+      expect(candidate.ranking!.worstRegret).toBe(fullScores.get(candidate.key));
+    }
+  });
+
+  it("uses linear Smart and Cost gaps and logarithmic Time gaps scaled by reference IQR", () => {
+    const metricValues = [
+      { smart: 0, fast: 1, cheap: 0 },
+      { smart: 10, fast: 2, cheap: 10 },
+      { smart: 30, fast: 4, cheap: 30 },
+      { smart: 40, fast: 8, cheap: 40 },
+    ];
+    const reference = metricValues.map((metrics, index) => ({
+      ...candidates[index]!,
+      key: `magnitude-reference-${index}`,
+      variant: { ...candidates[index]!.variant, metrics },
+    }));
+    const contribution = (index: number, axis: "smart" | "fast" | "cheap") => rankCandidates(
+      [reference[index]!],
+      { smart: 0, fast: 0, cheap: 0, [axis]: 12 },
+      [axis],
+      reference,
+    )[0]!.ranking!.contributions[axis];
+
+    expect(contribution(2, "smart")).toBeCloseTo(0.4);
+    expect(contribution(2, "cheap")).toBeCloseTo(1.2);
+    expect(contribution(1, "fast")).toBeCloseTo(2 / 3);
+    expect(contribution(2, "fast")).toBeCloseTo(4 / 3);
+  });
+
+  it("prioritizes the worst power-weighted regret over compensating improvements", () => {
+    const referenceMetrics = [
+      { smart: 0, fast: 1, cheap: 0 },
+      { smart: 10, fast: 2, cheap: 10 },
+      { smart: 30, fast: 4, cheap: 30 },
+      { smart: 40, fast: 8, cheap: 40 },
+    ];
+    const reference = referenceMetrics.map((metrics, index) => ({
+      ...candidates[index]!,
+      key: `worst-regret-reference-${index}`,
+      variant: { ...candidates[index]!.variant, metrics },
+    }));
+    const lowerWorstRegret = {
+      ...candidates[0]!,
+      key: "lower-worst-regret",
+      variant: { ...candidates[0]!.variant, metrics: { smart: 15, fast: 2 ** 1.5, cheap: 25 } },
+    };
+    const lowerMeanRegret = {
+      ...candidates[1]!,
+      key: "lower-mean-regret",
+      variant: { ...candidates[1]!.variant, metrics: { smart: 10, fast: 1, cheap: 0 } },
+    };
+
+    const ranked = rankCandidates(
+      [lowerWorstRegret, lowerMeanRegret],
+      { smart: 4, fast: 4, cheap: 4 },
+      undefined,
+      reference,
+    );
+    expect(ranked[0]?.key).toBe("lower-worst-regret");
+    expect(ranked[0]?.ranking?.worstRegret).toBeCloseTo(
+      Math.max(...Object.values(ranked[0]!.ranking!.contributions)),
+    );
+  });
+
+  it("moves different tradeoffs to the top for focused allocations", () => {
     const front = paretoFront(candidates);
-    const fast = rank(front, "fast")[0]?.variant.displayName;
-    const smart = rank(front, "smart")[0]?.variant.displayName;
-    const cheap = rank(front, "cheap")[0]?.variant.displayName;
-    expect(new Set([fast, smart, cheap]).size).toBeGreaterThan(1);
+    const top = (allocation: { smart: number; fast: number; cheap: number }) =>
+      rankCandidates(front, allocation)[0]?.variant.displayName;
+    expect(new Set([
+      top({ smart: 12, fast: 0, cheap: 0 }),
+      top({ smart: 0, fast: 12, cheap: 0 }),
+      top({ smart: 0, fast: 0, cheap: 12 }),
+    ]).size).toBeGreaterThan(1);
   });
 
   it("retains Reference Task Cost preferences when routes are Included", () => {
@@ -56,8 +140,9 @@ describe("Pareto ranking", () => {
       .filter((candidate) => ["GPT-5.5 (low)", "GPT-5.5 (medium)", "GPT-5.5 (high)"].includes(candidate.variant.displayName));
     const includedCandidates = referenceCandidates
       .map((candidate) => ({ ...candidate, effectiveCost: 0, included: true }));
-    const overall = rank(paretoFront(includedCandidates), "overall", paretoFront(referenceCandidates));
-    expect(overall[0]?.variant.displayName).toBe("GPT-5.5 (high)");
+    const referenceFront = paretoFront(referenceCandidates);
+    const overall = rank(paretoFront(includedCandidates), "overall", referenceFront);
+    expect(overall[0]?.variant.displayName).toBe(rank(referenceFront, "overall")[0]?.variant.displayName);
   });
 
   it("uses subscriptions for domination without reordering shared frontier variants", () => {
@@ -109,8 +194,8 @@ describe("Pareto ranking", () => {
       current: false,
     }));
     const front = paretoFront(subDollarCandidates);
-    const overall = rank(front, "overall").slice(0, 5).map((candidate) => candidate.key);
+    const smart = rank(front, "smart").slice(0, 5).map((candidate) => candidate.key);
     const cheap = rank(front, "cheap").slice(0, 5).map((candidate) => candidate.key);
-    expect(cheap).not.toEqual(overall);
+    expect(cheap).not.toEqual(smart);
   });
 });
