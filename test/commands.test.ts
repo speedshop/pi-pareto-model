@@ -57,7 +57,7 @@ describe("preset shortcut commands", () => {
 
     expect(context.ui.custom).not.toHaveBeenCalled();
     expect(setModel).toHaveBeenCalledTimes(2);
-    expect(setModel).toHaveBeenCalledWith(expect.objectContaining({ provider: "openai-codex", id: "gpt-5.5" }));
+    expect(setModel).toHaveBeenCalledWith(expect.objectContaining({ provider: "baseten", id: "moonshotai/Kimi-K3" }));
     expect(setThinkingLevel).toHaveBeenCalledWith("high");
   });
 });

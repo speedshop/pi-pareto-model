@@ -30,8 +30,8 @@ function verticalBar(value: number): string {
   return BLOCKS[Math.round(value * (BLOCKS.length - 1))]!;
 }
 
-function horizontalBar(value: number, width: number): string {
-  const units = Math.round(value * width * 8);
+export function renderMicrobar(value: number, width: number): string {
+  const units = Math.round(Math.max(0, Math.min(1, value)) * width * 8);
   const full = Math.floor(units / 8);
   const partial = units % 8;
   const bar = "█".repeat(full) + (partial > 0 ? PARTIAL_BLOCKS[partial] : "");
@@ -52,7 +52,7 @@ export function createMetricScale(values: readonly MetricValues[]): MetricScale 
   return {
     bar(axis, value, width = 1) {
       const position = quality(ranges[axis], value);
-      return width === 1 ? verticalBar(position) : horizontalBar(position, width);
+      return width === 1 ? verticalBar(position) : renderMicrobar(position, width);
     },
   };
 }

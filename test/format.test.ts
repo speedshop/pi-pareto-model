@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { costPrecision, formatCost, formatTime, timeUnit } from "../src/ui/format.js";
+import { formatCost, formatProvider, formatTime, timeUnit } from "../src/ui/format.js";
 
 describe("comparable metric formatting", () => {
   it("chooses one time unit from the column maximum", () => {
@@ -8,9 +8,14 @@ describe("comparable metric formatting", () => {
     expect(formatTime(66, unit)).toBe("1.1m");
   });
 
-  it("chooses fixed cost precision from the smallest positive value", () => {
-    const precision = costPrecision([0, 0.0042, 12]);
-    expect(formatCost(0.0042, precision)).toBe("$0.0042");
-    expect(formatCost(12, precision)).toBe("$12.0000");
+  it("rounds costs to thousandths", () => {
+    expect(formatCost(0.0042)).toBe("$0.004");
+    expect(formatCost(12)).toBe("$12.000");
+    expect(formatCost(1.2356)).toBe("$1.236");
+  });
+
+  it("abbreviates each provider when several share a variant", () => {
+    expect(formatProvider("baseten, huggingface")).toBe("bas, hug");
+    expect(formatProvider("openai-codex")).toBe("openai-codex");
   });
 });

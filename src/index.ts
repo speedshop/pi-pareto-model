@@ -195,6 +195,7 @@ export default function paretoModelPicker(pi: ExtensionAPI): void {
       let preset: Preset = presetNames[0]!;
       let scope: CatalogScope = "available";
       let showDominated = false;
+      let debugMode = false;
       let query = "";
       while (true) {
         const getCandidates = (
@@ -230,6 +231,7 @@ export default function paretoModelPicker(pi: ExtensionAPI): void {
               });
             },
             initialShowDominated: showDominated,
+            initialDebugMode: debugMode,
             initialQuery: query,
             getCandidates,
             availableHeight: () => tui.terminal.rows,
@@ -242,6 +244,7 @@ export default function paretoModelPicker(pi: ExtensionAPI): void {
         preset = result.preset;
         scope = result.scope;
         showDominated = result.showDominated;
+        debugMode = result.debugMode;
         query = result.query;
         if (result.type === "subscriptions") {
           await showSubscriptions(ctx);

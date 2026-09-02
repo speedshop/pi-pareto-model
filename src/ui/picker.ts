@@ -1,13 +1,17 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
-import { decodeKittyPrintable, Key, matchesKey, truncateToWidth, visibleWidth, type Component } from "@earendil-works/pi-tui";
-import { enabledAxes, routePower, TOTAL_POWER, type PowerAllocation, type PresetAllocations } from "../ranking/power.js";
-import type { Candidate, CatalogScope, ComparisonAxis, Preset } from "../routes/types.js";
-import { costPrecision, formatCost, formatSmart, formatTime, padStartToWidth, padToWidth, timeUnit, type TimeUnit } from "./format.js";
-import { createMetricScale, type MetricScale } from "./metric-scale.js";
+import { decodeKittyPrintable, Key, matchesKey, truncateToWidth, type Component } from "@earendil-works/pi-tui";
+import { DEFAULT_PRESETS, enabledAxes, TOTAL_POWER, transferPower, type PowerAllocation, type PresetAllocations } from "../ranking/power.js";
+import { COMPARISON_AXES, type Candidate, type CatalogScope, type ComparisonAxis, type Preset } from "../routes/types.js";
+import { formatCost, formatProvider, formatSmart, formatTime, padStartToWidth, padToWidth, timeUnit, type TimeUnit } from "./format.js";
+import { createMetricScale, renderMicrobar, type MetricScale } from "./metric-scale.js";
+
+const POWER_BAR_WIDTH = 6;
+const WIDE_METRIC_WIDTH = 12;
+const AXIS_NAMES: Record<ComparisonAxis, string> = { smart: "Smart", fast: "Time", cheap: "Cost" };
+const AXIS_KEYS: Record<ComparisonAxis, string> = { smart: "s", fast: "t", cheap: "c" };
 
 interface DisplayFormats {
   timeUnit: TimeUnit;
-  costPrecision: number;
   metricScale: MetricScale;
   metricBarWidth: number;
 }
@@ -16,6 +20,7 @@ interface PickerState {
   preset: Preset;
   scope: CatalogScope;
   showDominated: boolean;
+  debugMode: boolean;
   query: string;
 }
 
@@ -34,6 +39,7 @@ export interface PickerOptions {
   onAllocationChange: (preset: Preset, allocation: PowerAllocation) => void;
   onSaveDefault: (preset: Preset, allocation: PowerAllocation) => void;
   initialShowDominated?: boolean;
+  initialDebugMode?: boolean;
   initialQuery?: string;
   getCandidates: (
     preset: Preset,
@@ -59,8 +65,10 @@ export class ModelPicker implements Component {
   private preset: Preset;
   private scope: CatalogScope;
   private showDominated: boolean;
+  private debugMode: boolean;
   private query: string;
   private searching = false;
+  private powerTarget: ComparisonAxis | undefined;
   private selected = 0;
 
   constructor(options: PickerOptions) {
@@ -76,6 +84,7 @@ export class ModelPicker implements Component {
     this.preset = options.initialPreset ?? this.presets[0]!;
     this.scope = options.initialScope ?? "available";
     this.showDominated = options.initialShowDominated ?? false;
+    this.debugMode = options.initialDebugMode ?? false;
     this.query = options.initialQuery ?? "";
   }
 
@@ -117,6 +126,7 @@ export class ModelPicker implements Component {
       preset: this.preset,
       scope: this.scope,
       showDominated: this.showDominated,
+      debugMode: this.debugMode,
       query: this.query,
     };
   }
@@ -131,6 +141,7 @@ export class ModelPicker implements Component {
 
   private changePreset(index: number): void {
     this.preset = this.presets[(index + this.presets.length) % this.presets.length]!;
+    this.powerTarget = undefined;
     this.selected = 0;
   }
 
@@ -140,9 +151,18 @@ export class ModelPicker implements Component {
     this.selected = 0;
   }
 
-  private addPower(axis: ComparisonAxis): void {
+  private handlePowerAxis(axis: ComparisonAxis): void {
+    const target = this.powerTarget;
+    if (!target) {
+      this.powerTarget = axis;
+      return;
+    }
+    if (axis === target) {
+      this.powerTarget = undefined;
+      return;
+    }
     const current = this.allocation();
-    const allocation = routePower(current, axis);
+    const allocation = transferPower(current, axis, target);
     if (allocation !== current) this.applyAllocation(allocation);
   }
 
@@ -174,20 +194,30 @@ export class ModelPicker implements Component {
         return;
       }
     } else {
-      if (matchesKey(data, Key.escape)) return this.done(null);
+      if (matchesKey(data, Key.escape)) {
+        if (this.powerTarget) {
+          this.powerTarget = undefined;
+          return;
+        }
+        return this.done(null);
+      }
       if (data === "/") {
         this.searching = true;
         return;
       }
       if (data === "u") return this.done({ type: "subscriptions", ...this.state() });
-      if (data === "s") return this.addPower("smart");
-      if (data === "t") return this.addPower("fast");
-      if (data === "c") return this.addPower("cheap");
+      if (data === "s") return this.handlePowerAxis("smart");
+      if (data === "t") return this.handlePowerAxis("fast");
+      if (data === "c") return this.handlePowerAxis("cheap");
       if (data === "r") return this.resetPower();
       if (data === "p") return this.savePower();
       if (data === "d") {
         this.showDominated = !this.showDominated;
         this.selected = 0;
+        return;
+      }
+      if (data === "D") {
+        this.debugMode = !this.debugMode;
         return;
       }
       if (data === "a") {
@@ -228,21 +258,39 @@ export class ModelPicker implements Component {
 
   private allocationLine(): string {
     const allocation = this.allocation();
+    const codeDefaults = DEFAULT_PRESETS[this.preset]?.allocation;
     const label = (axis: ComparisonAxis, name: string) => {
-      const bars = "■".repeat(allocation[axis]);
+      if (this.debugMode) {
+        const modified = codeDefaults && allocation[axis] !== codeDefaults[axis] ? "*" : "";
+        return `${this.theme.fg("accent", this.theme.bold(name))} ${allocation[axis]}${modified}`;
+      }
+      const bar = renderMicrobar(allocation[axis] / TOTAL_POWER, POWER_BAR_WIDTH);
       const content = allocation[axis] === 0
-        ? this.theme.fg("dim", `${name} —`)
-        : `${this.theme.fg("accent", this.theme.bold(name))} ${bars}`;
-      return padToWidth(content, name.length + 1 + TOTAL_POWER);
+        ? this.theme.fg("dim", `${name} ${bar}`)
+        : `${this.theme.fg("accent", this.theme.bold(name))} ${bar}`;
+      return padToWidth(content, name.length + 1 + POWER_BAR_WIDTH);
     };
-    return `${label("smart", "Smart")}  ${label("fast", "Time")}  ${label("cheap", "Cost")}`.trimEnd();
+    const allocationDisplay = `${label("smart", "Smart")}  ${label("fast", "Time")}  ${label("cheap", "Cost")}`.trimEnd();
+    if (!this.powerTarget) return allocationDisplay;
+    const donors = COMPARISON_AXES
+      .filter((axis) => axis !== this.powerTarget)
+      .map((axis) => `${AXIS_KEYS[axis]} ${AXIS_NAMES[axis]}`)
+      .join(" / ");
+    return `${allocationDisplay}  Donor: ${donors} → ${AXIS_NAMES[this.powerTarget]}`;
   }
 
-  private topLines(width: number): string[] {
-    const preset = this.presetLine();
-    const allocation = this.allocationLine();
-    const combined = `${preset}  ${allocation}`;
-    return visibleWidth(combined) <= width ? [combined] : [preset, allocation];
+  private powerHelp(): string {
+    const modified = this.isModified() ? "*" : "";
+    if (!this.powerTarget) return `power${modified}: s/t/c target · tab preset · r reset · p save`;
+    const donors = COMPARISON_AXES
+      .filter((axis) => axis !== this.powerTarget)
+      .map((axis) => AXIS_KEYS[axis])
+      .join("/");
+    return `donor: ${donors} → ${AXIS_NAMES[this.powerTarget]} · ${AXIS_KEYS[this.powerTarget]}/esc done`;
+  }
+
+  private topLines(): string[] {
+    return [this.presetLine(), this.allocationLine()];
   }
 
   private searchLine(): string {
@@ -268,18 +316,28 @@ export class ModelPicker implements Component {
     selected: boolean,
     formats: DisplayFormats,
   ): string {
-    return this.label(`${text} ${formats.metricScale.bar(axis, value, formats.metricBarWidth)}`, candidate, selected);
+    const indicator = this.debugMode && formats.metricBarWidth > 1
+      ? (candidate.ranking?.contributions[axis].toFixed(2) ?? "—".repeat(formats.metricBarWidth))
+      : formats.metricScale.bar(axis, value, formats.metricBarWidth);
+    return this.label(`${text} ${indicator}`, candidate, selected);
   }
 
-  private costText(candidate: Candidate, precision: number): string {
-    const referenceCost = formatCost(candidate.variant.metrics.cheap, precision);
+  private costText(candidate: Candidate): string {
+    const referenceCost = formatCost(candidate.variant.metrics.cheap);
     return `${referenceCost}${candidate.included ? " ·incl" : ""}`;
   }
 
+  private providerText(candidate: Candidate): string {
+    if (this.debugMode) return candidate.ranking?.worstRegret.toFixed(3) ?? "—";
+    const provider = formatProvider(candidate.providerLabel);
+    if (candidate.dominatedBy) return `← ${candidate.dominatedBy.variant.displayName} · ${provider}`;
+    return provider;
+  }
+
   private wideRow(candidate: Candidate, selected: boolean, width: number, formats: DisplayFormats): string {
-    const smartWidth = 6 + formats.metricBarWidth;
-    const timeWidth = 7 + formats.metricBarWidth;
-    const costWidth = 13 + formats.metricBarWidth;
+    const smartWidth = WIDE_METRIC_WIDTH;
+    const timeWidth = WIDE_METRIC_WIDTH;
+    const costWidth = WIDE_METRIC_WIDTH;
     const providerWidth = Math.min(20, Math.max(12, Math.floor(width * 0.15)));
     const modelWidth = Math.max(16, width - smartWidth - timeWidth - costWidth - providerWidth - 6);
     const prefix = this.label(selected ? "› " : "  ", candidate, selected);
@@ -290,12 +348,17 @@ export class ModelPicker implements Component {
     const smart = this.metric("smart", candidate.variant.metrics.smart, smartText, candidate, selected, formats);
     const timeText = padStartToWidth(formatTime(candidate.variant.metrics.fast, formats.timeUnit), timeWidth - metricPadding);
     const time = this.metric("fast", candidate.variant.metrics.fast, timeText, candidate, selected, formats);
-    const costText = padStartToWidth(this.costText(candidate, formats.costPrecision), costWidth - metricPadding);
-    const cost = this.metric("cheap", candidate.effectiveCost, costText, candidate, selected, formats);
-    const providerText = candidate.dominatedBy
-      ? `← ${candidate.dominatedBy.variant.displayName} · ${candidate.providerLabel}`
-      : candidate.providerLabel;
-    const provider = this.label(padToWidth(providerText, providerWidth, "…"), candidate, selected);
+    const cost = candidate.included && !this.debugMode
+      ? this.label(padStartToWidth(this.costText(candidate), costWidth), candidate, selected)
+      : this.metric(
+        "cheap",
+        candidate.effectiveCost,
+        padStartToWidth(this.costText(candidate), costWidth - metricPadding),
+        candidate,
+        selected,
+        formats,
+      );
+    const provider = this.label(padToWidth(this.providerText(candidate), providerWidth, "…"), candidate, selected);
     return truncateToWidth(`${prefix}${model} ${smart} ${time} ${cost} ${provider}`, width, "");
   }
 
@@ -329,7 +392,7 @@ export class ModelPicker implements Component {
         const text = padStartToWidth(formatTime(candidate.variant.metrics.fast, formats.timeUnit), columnWidth - 2);
         return this.metric("fast", candidate.variant.metrics.fast, text, candidate, selected, formats);
       }
-      const text = padStartToWidth(this.costText(candidate, formats.costPrecision), columnWidth - 2);
+      const text = padStartToWidth(this.costText(candidate), columnWidth - 2);
       return this.metric("cheap", candidate.effectiveCost, text, candidate, selected, formats);
     });
     return `${prefix}${model}${values.map((value) => ` ${value}`).join("")}`;
@@ -338,7 +401,7 @@ export class ModelPicker implements Component {
   render(width: number): string[] {
     const candidates = this.candidates();
     if (this.selected >= candidates.length) this.selected = Math.max(0, candidates.length - 1);
-    const topLines = this.topLines(width);
+    const topLines = this.topLines();
     const rowHeight = 1;
     const hasDominated = candidates.some((candidate) => candidate.dominatedBy);
     const fixedLines = topLines.length + 7 + (hasDominated ? 1 : 0);
@@ -347,7 +410,6 @@ export class ModelPicker implements Component {
     const page = candidates.slice(pageStart, pageStart + pageSize);
     const formats: DisplayFormats = {
       timeUnit: timeUnit(candidates.map((candidate) => candidate.variant.metrics.fast)),
-      costPrecision: costPrecision(candidates.map((candidate) => candidate.variant.metrics.cheap)),
       metricScale: createMetricScale(candidates.map((candidate) => ({
         smart: candidate.variant.metrics.smart,
         fast: candidate.variant.metrics.fast,
@@ -368,9 +430,9 @@ export class ModelPicker implements Component {
     };
 
     if (width >= 80) {
-      const smartWidth = 6 + formats.metricBarWidth;
-      const timeWidth = 7 + formats.metricBarWidth;
-      const costWidth = 13 + formats.metricBarWidth;
+      const smartWidth = WIDE_METRIC_WIDTH;
+      const timeWidth = WIDE_METRIC_WIDTH;
+      const costWidth = WIDE_METRIC_WIDTH;
       const providerWidth = Math.min(20, Math.max(12, Math.floor(width * 0.15)));
       const modelWidth = Math.max(16, width - smartWidth - timeWidth - costWidth - providerWidth - 6);
       lines.push(truncateToWidth(
@@ -378,7 +440,7 @@ export class ModelPicker implements Component {
           + " " + this.axisHeader("smart", "Smart", smartWidth)
           + " " + this.axisHeader("fast", "Time", timeWidth)
           + " " + this.axisHeader("cheap", "Cost", costWidth)
-          + " " + padToWidth("Provider", providerWidth),
+          + " " + padToWidth(this.debugMode ? "Worst" : "Provider", providerWidth),
         width,
         "",
       ));
@@ -406,7 +468,7 @@ export class ModelPicker implements Component {
       "",
     ));
     lines.push(truncateToWidth(this.searchLine(), width, ""));
-    lines.push(truncateToWidth(`power${this.isModified() ? "*" : ""}: tab preset · s/t/c change · r reset · p save`, width, ""));
+    lines.push(truncateToWidth(this.powerHelp(), width, ""));
     lines.push(truncateToWidth("/ search · d dominated · a all · u subs", width, ""));
     return lines;
   }

@@ -122,9 +122,9 @@ Add a `presets` object to define the complete Preset list. The picker shows Pres
   },
   "presets": {
     "overall": {
-      "smart": 6,
-      "time": 3,
-      "cost": 3
+      "smart": 6.25,
+      "time": 4.25,
+      "cost": 1.5
     },
     "oracle": {
       "smart": 12,
@@ -133,8 +133,8 @@ Add a `presets` object to define the complete Preset list. The picker shows Pres
     },
     "cheap": {
       "smart": 3,
-      "time": 2,
-      "cost": 7,
+      "time": 1.5,
+      "cost": 7.5,
       "subscriptionRoutes": "only",
       "paretoCost": "reference"
     }
@@ -164,14 +164,14 @@ Run this Pi command:
 /pareto
 ```
 
-The picker shows five choices at one time. Use Up or Down to move through all choices.
+The picker fills the available terminal height. Use Up or Down to move through all choices.
 
 | Key | Action |
 |---|---|
 | Up/Down | Move the selection |
 | Tab / Shift+Tab | Change the Preset |
 | Home/End | Move to the first or last choice |
-| `s` / `t` / `c` | Move one power unit to Smart, Time, or Cost |
+| `s` / `t` / `c` | Choose a Power Allocation target or donate to the active target |
 | `r` | Reset the current Preset |
 | `p` | Save the current Power Allocation as the Preset default |
 | `d` | Show or hide dominated Model Variants |
@@ -179,7 +179,7 @@ The picker shows five choices at one time. Use Up or Down to move through all ch
 | `a` | Select the Available Catalog or Full Catalog |
 | `u` | Enable or disable subscriptions for this Pi session |
 | Enter | Select an available Model Variant |
-| Escape | Clear the search or close the picker |
+| Escape | Clear the search, leave donor mode, or close the picker |
 
 The search updates after each character. It searches these fields:
 
@@ -222,7 +222,9 @@ The command uses the current Power Allocation, authentication data, and subscrip
 
 Each Preset has 12 power units. The picker distributes these units across Smart, Time, and Cost.
 
-Press `s`, `t`, or `c` to move one unit to that measure. The unit comes from the strongest other measure.
+Press `s`, `t`, or `c` to choose the measure that will receive power. The picker then enters donor mode. Press either other measure to transfer one quarter-power from that donor to the target. You can use different donors for consecutive transfers.
+
+Press the target key again, or press Escape, to leave donor mode. Four transfers move one complete power unit.
 
 An asterisk in `power*:` means that the current allocation is not the configured default.
 
@@ -240,14 +242,14 @@ The picker uses these Presets only when the configuration has no `presets` objec
 
 | Preset | Allocation | Purpose |
 |---|---:|---|
-| Overall | `6/3/3` | Give the most power to Smart |
-| Fast | `4/6/2` | Give the most power to Time |
-| Smart | `8/2/2` | Give strong priority to Smart |
-| Cheap | `3/2/7` | Give the most power to Cost |
+| Overall | `6.25/4.25/1.5` | Balance Smart and Time with the most power on Smart |
+| Fast | `5/5.25/1.75` | Balance Smart and Time with a slight Time preference |
+| Smart | `8/2.25/1.75` | Give strong priority to Smart |
+| Cheap | `1.25/1/9.75` | Give the most power to Cost |
 
 You can replace these names and allocations with any configured Presets. For example, an `oracle` Preset can use `12/0/0`.
 
-Each allocation must use nonnegative integers. The three values must total 12.
+Each allocation must use nonnegative multiples of `0.25`. The three values must total 12.
 
 ## Ranking
 

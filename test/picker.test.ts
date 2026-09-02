@@ -44,15 +44,35 @@ function createPicker(options: Omit<
 describe("model picker", () => {
   it("fills the available page, renders data columns, and marks the current model", () => {
     const picker = createPicker({ getCandidates: () => candidates, done: () => {} });
-    const rendered = picker.render(100).join("\n");
+    const lines = picker.render(100);
+    const rendered = lines.join("\n");
+    expect(lines[0]).toContain("Preset:");
+    expect(lines[0]).not.toContain("Smart ███▏··");
+    expect(lines[1]).toContain("Smart ███▏··");
+    expect(rendered).toContain("Smart ███▏··");
+    expect(rendered).toContain("Time ██▏···");
+    expect(rendered).toContain("Cost ▊·····");
     expect(rendered).toContain("Model variant");
     expect(rendered).toContain("Provider");
     expect(rendered).toContain("Smart");
     expect(rendered).toContain("✓");
     expect(rendered).toContain("1–9 of 9");
     expect(rendered).toContain("$4.500 ·incl");
-    expect(rendered).toContain("power: tab preset · s/t/c change · r reset · p save");
+    expect(rendered).toContain("power: s/t/c target · tab preset · r reset · p save");
     expect(rendered).toContain("/ search · d dominated · a all · u subs");
+  });
+
+  it("renders the fractional Fast Power Allocation", () => {
+    const picker = createPicker({ initialPreset: "fast", getCandidates: () => candidates, done: () => {} });
+    expect(picker.render(100)[1]).toContain("Smart ██▌···  Time ██▋···  Cost ▉·····");
+  });
+
+  it("gives Smart, Time, and Cost equal-width columns", () => {
+    const header = createPicker({ getCandidates: () => candidates, done: () => {} })
+      .render(100)
+      .find((line) => line.includes("Model variant"))!;
+    expect(header.indexOf("Time") - header.indexOf("Smart"))
+      .toBe(header.indexOf("Cost") - header.indexOf("Time"));
   });
 
   it("keeps every line within the available width", () => {
@@ -94,11 +114,11 @@ describe("model picker", () => {
       done: (value) => { result = value; },
     });
     for (let index = 0; index < 8; index += 1) picker.handleInput("\x1b[B");
-    expect(picker.render(100).join("\n")).toContain("9–9 of 9");
+    expect(picker.render(100).join("\n")).toContain("8–9 of 9");
     picker.handleInput("\t");
     picker.handleInput("\t");
     expect(picker.render(100)[0]).toContain("smart");
-    expect(picker.render(100).join("\n")).toContain("1–8 of 9");
+    expect(picker.render(100).join("\n")).toContain("1–7 of 9");
     picker.handleInput("a");
     expect(picker.render(100).join("\n")).toContain("all models");
     picker.handleInput("u");
@@ -114,7 +134,7 @@ describe("model picker", () => {
     expect(picker.render(100).join("\n")).toContain("Preset: advisor ·");
     picker.handleInput("\t");
     expect(picker.render(100).join("\n")).toContain("Preset: planner ·");
-    expect(picker.render(100).join("\n")).toContain("Smart ■■■■■■");
+    expect(picker.render(100).join("\n")).toContain("Smart ███···");
   });
 
   it("routes power, can reduce axes to zero, and resets to item one", () => {
@@ -128,14 +148,16 @@ describe("model picker", () => {
     });
     const initialAllocation = picker.render(120).find((line) => line.includes("Smart"))!;
     for (let index = 0; index < 5; index += 1) picker.handleInput("\x1b[B");
-    for (let index = 0; index < 9; index += 1) picker.handleInput("c");
+    picker.handleInput("c");
+    for (let index = 0; index < 25; index += 1) picker.handleInput("s");
+    for (let index = 0; index < 17; index += 1) picker.handleInput("t");
     const changedAllocation = picker.render(120).find((line) => line.includes("Smart"))!;
     expect(changedAllocation.indexOf("Time")).toBe(initialAllocation.indexOf("Time"));
     expect(changedAllocation.indexOf("Cost")).toBe(initialAllocation.indexOf("Cost"));
     const rendered = picker.render(100).join("\n");
     expect(activeAxes).toEqual(["cheap"]);
-    expect(rendered).toContain("Smart —");
-    expect(rendered).toContain("Time —");
+    expect(rendered).toContain("Smart ······");
+    expect(rendered).toContain("Time ······");
     expect(rendered).toContain("1–9 of 9");
   });
 
@@ -149,13 +171,50 @@ describe("model picker", () => {
       done: () => {},
     });
     picker.handleInput("c");
-    expect(current).toEqual({ smart: 5, fast: 3, cheap: 4 });
-    expect(picker.render(100).join("\n")).toContain("power*: tab preset");
+    picker.handleInput("s");
+    expect(current).toEqual({ smart: 6, fast: 4.25, cheap: 1.75 });
+    expect(picker.render(100).join("\n")).toContain("donor: s/t → Cost");
     picker.handleInput("p");
     expect(saved).toEqual(current);
+    picker.handleInput("c");
+    expect(picker.render(100).join("\n")).toContain("power*: s/t/c target");
     picker.handleInput("r");
     expect(current).toEqual(DEFAULT_PRESETS.overall!.allocation);
-    expect(picker.render(100).join("\n")).toContain("power: tab preset");
+    expect(picker.render(100).join("\n")).toContain("power: s/t/c target");
+  });
+
+  it("exits donor mode before Escape closes the picker", () => {
+    let doneCalls = 0;
+    const picker = createPicker({ getCandidates: () => candidates, done: () => { doneCalls += 1; } });
+    picker.handleInput("t");
+    expect(picker.render(100).join("\n")).toContain("donor: s/c → Time");
+    picker.handleInput("\x1b");
+    expect(doneCalls).toBe(0);
+    expect(picker.render(100).join("\n")).toContain("power: s/t/c target");
+    picker.handleInput("\x1b");
+    expect(doneCalls).toBe(1);
+  });
+
+  it("shows hidden ranking calculations after uppercase D", () => {
+    const ranked = [{
+      ...candidates[0]!,
+      ranking: { contributions: { smart: 0.1, fast: 0.2, cheap: 0.05 }, worstRegret: 0.2 },
+    }];
+    const configuredPresets = structuredClone(DEFAULT_PRESETS);
+    configuredPresets.overall!.allocation = { smart: 6, fast: 4.5, cheap: 1.5 };
+    const picker = createPicker({ getCandidates: () => ranked, done: () => {} }, configuredPresets);
+    picker.handleInput("D");
+    const lines = picker.render(100);
+    const rendered = lines.join("\n");
+    expect(lines[1]).toBe("Smart 6*  Time 4.5*  Cost 1.5");
+    expect(rendered).not.toContain("Smart ███");
+    expect(rendered).toContain("Worst");
+    expect(rendered).toContain("0.10");
+    expect(rendered).toContain("0.20");
+    expect(rendered).toContain("0.05");
+    expect(rendered).toContain("0.200");
+    expect(rendered).not.toContain("fixture-provider");
+    expect(rendered).not.toContain("debug");
   });
 
   it("separates and labels dominated candidates", () => {

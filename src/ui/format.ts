@@ -26,13 +26,12 @@ export function formatTime(seconds: number, unit: TimeUnit = seconds >= 60 ? "mi
   return `${value < 10 ? value.toFixed(1) : Math.round(value)}${suffix}`;
 }
 
-export function costPrecision(values: readonly number[]): number {
-  const minimum = Math.min(...values.filter((value) => value > 0));
-  if (!Number.isFinite(minimum) || minimum >= 1) return 2;
-  if (minimum >= 0.01) return 3;
-  return 4;
+export function formatCost(value: number): string {
+  return `$${value.toFixed(3)}`;
 }
 
-export function formatCost(value: number, precision = costPrecision([value])): string {
-  return `$${value.toFixed(precision)}`;
+export function formatProvider(value: string): string {
+  const providers = value.split(", ");
+  if (providers.length === 1) return value;
+  return providers.map((provider) => provider.slice(0, 3)).join(", ");
 }

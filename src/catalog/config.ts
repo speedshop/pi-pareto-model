@@ -4,7 +4,7 @@ import { isAbsolute, join, resolve } from "node:path";
 import { CONFIG_DIR_NAME, getAgentDir, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 import {
   DEFAULT_PRESETS,
-  TOTAL_POWER,
+  isPowerAllocation,
   type ParetoCost,
   type PowerAllocation,
   type PresetDefinition,
@@ -43,9 +43,7 @@ const PRESET_NAME = /^[A-Za-z][A-Za-z0-9_-]*$/;
 function isPresetDefinition(value: unknown): value is ConfigPresetDefinition {
   if (!value || typeof value !== "object") return false;
   const preset = value as Record<string, unknown>;
-  const values = [preset.smart, preset.time, preset.cost];
-  const validAllocation = values.every((item) => typeof item === "number" && Number.isInteger(item) && item >= 0)
-    && values.reduce<number>((sum, item) => sum + (item as number), 0) === TOTAL_POWER;
+  const validAllocation = isPowerAllocation({ smart: preset.smart, fast: preset.time, cheap: preset.cost });
   const validSubscriptionRoutes = preset.subscriptionRoutes === undefined
     || preset.subscriptionRoutes === "compete"
     || preset.subscriptionRoutes === "only";

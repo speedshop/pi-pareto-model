@@ -44,7 +44,7 @@ describe("catalog sources", () => {
       source: { type: "file", path: fixturePath },
       presets: {
         advisor: { smart: 12, time: 0, cost: 0 },
-        planner: { smart: 6, time: 6, cost: 0, subscriptionRoutes: "only", paretoCost: "reference" },
+        planner: { smart: 6.25, time: 5.75, cost: 0, subscriptionRoutes: "only", paretoCost: "reference" },
       },
     });
     expect(Object.keys(presets)).toEqual(["advisor", "planner"]);
