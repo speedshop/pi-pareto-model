@@ -1,6 +1,8 @@
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { promisify } from "node:util";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { CatalogSource } from "./config.js";
 import { interpolateEnvironment } from "./config.js";
@@ -17,6 +19,7 @@ interface CacheEntry {
 export interface LoadCatalogOptions {
   ttlHours?: number;
   fetch?: typeof globalThis.fetch;
+  githubApi?: (endpoint: string) => Promise<string>;
   cacheDir?: string;
   now?: () => number;
 }
@@ -38,6 +41,32 @@ async function readCache(path: string): Promise<CacheEntry | undefined> {
 async function saveCache(path: string, entry: CacheEntry): Promise<void> {
   await mkdir(join(path, ".."), { recursive: true, mode: 0o700 });
   await writeFile(path, JSON.stringify(entry), { encoding: "utf8", mode: 0o600 });
+}
+
+const execFileAsync = promisify(execFile);
+
+async function githubApi(endpoint: string): Promise<string> {
+  try {
+    const { stdout } = await execFileAsync(
+      "gh",
+      ["api", "-H", "Accept: application/vnd.github.raw+json", endpoint],
+      { encoding: "utf8", maxBuffer: 10 * 1024 * 1024 },
+    );
+    return stdout;
+  } catch (error) {
+    const stderr = error && typeof error === "object" && "stderr" in error
+      ? String(error.stderr).trim()
+      : "";
+    throw new Error(`GitHub catalog request failed: ${stderr || String(error)}`, { cause: error });
+  }
+}
+
+async function loadGithub(
+  source: Extract<CatalogSource, { type: "github" }>,
+  options: LoadCatalogOptions,
+): Promise<string> {
+  const endpoint = `repos/${source.repository}/contents/${source.path}`;
+  return (options.githubApi ?? githubApi)(endpoint);
 }
 
 async function loadHttp(source: Extract<CatalogSource, { type: "http" }>, options: LoadCatalogOptions): Promise<string> {
@@ -81,8 +110,13 @@ async function loadHttp(source: Extract<CatalogSource, { type: "http" }>, option
 }
 
 export async function loadCatalog(source: CatalogSource, options: LoadCatalogOptions = {}): Promise<ModelSelectionCatalog> {
-  const body = source.type === "file"
-    ? await readFile(source.path, "utf8")
-    : await loadHttp(source, options);
+  let body: string;
+  if (source.type === "file") {
+    body = await readFile(source.path, "utf8");
+  } else if (source.type === "github") {
+    body = await loadGithub(source, options);
+  } else {
+    body = await loadHttp(source, options);
+  }
   return validateCatalog(JSON.parse(body) as unknown);
 }

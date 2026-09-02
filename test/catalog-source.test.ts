@@ -19,6 +19,21 @@ describe("catalog sources", () => {
     expect(catalog.catalog.id).toBe("fixture-random-model-index");
   });
 
+  it("loads a private GitHub file through gh authentication", async () => {
+    const body = await readFile(fixturePath, "utf8");
+    const githubApi = vi.fn(async () => body);
+    const catalog = await loadCatalog({
+      type: "github",
+      repository: "example/model-catalog",
+      path: "catalog/model-selection-catalog.json",
+    }, { githubApi });
+
+    expect(githubApi).toHaveBeenCalledWith(
+      "repos/example/model-catalog/contents/catalog/model-selection-catalog.json",
+    );
+    expect(catalog.catalog.id).toBe("fixture-random-model-index");
+  });
+
   it("interpolates environment variables without exposing config secrets", () => {
     expect(interpolateEnvironment("Bearer $TOKEN", { TOKEN: "secret" })).toBe("Bearer secret");
     expect(() => interpolateEnvironment("$MISSING", {})).toThrow("MISSING");

@@ -15,6 +15,7 @@ import type { Preset } from "../routes/types.js";
 
 export type CatalogSource =
   | { type: "file"; path: string }
+  | { type: "github"; repository: string; path: string }
   | { type: "http"; url: string; headers?: Record<string, string> };
 
 export interface ConfigPresetDefinition {
@@ -65,6 +66,9 @@ function isConfig(value: unknown): value is PickerConfig {
       && typeof candidate.headers === "object"
       && Object.values(candidate.headers).every((header) => typeof header === "string"));
   const validSource = (candidate.type === "file" && typeof candidate.path === "string")
+    || (candidate.type === "github"
+      && typeof candidate.repository === "string"
+      && typeof candidate.path === "string")
     || (candidate.type === "http" && typeof candidate.url === "string" && validHeaders);
   const validCacheTtl = config.cacheTtlHours === undefined
     || (typeof config.cacheTtlHours === "number" && Number.isFinite(config.cacheTtlHours) && config.cacheTtlHours >= 0);

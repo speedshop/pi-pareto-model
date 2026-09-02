@@ -18,7 +18,7 @@ The picker uses Pi authentication data, subscription data, and provider prices. 
 - Show Pareto-efficient choices first.
 - Use all authenticated Pi Provider Routes.
 - Support subscriptions without changing the preferred order of reasoning levels.
-- Load a catalog from a local file or private HTTP URL.
+- Load a catalog from a local file, GitHub CLI, or private HTTP URL.
 - Save a different Power Allocation for each Preset.
 
 ## Contents
@@ -65,7 +65,28 @@ Create `~/.pi/agent/pareto-model-picker.json`.
 
 The repository includes a test catalog at `test/fixtures/model-selection-catalog.json`. Its benchmark values are fabricated.
 
-### Use a private GitHub repository
+### Use GitHub CLI authentication
+
+```json
+{
+  "source": {
+    "type": "github",
+    "repository": "OWNER/REPOSITORY",
+    "path": "catalog/model-selection-catalog.json"
+  }
+}
+```
+
+The picker runs `gh api` with the active GitHub CLI account. Authenticate that account before starting Pi:
+
+```fish
+gh auth login
+gh auth status
+```
+
+The catalog is loaded once per Pi session. Start a new session to load upstream changes.
+
+### Use a private HTTP URL
 
 ```json
 {
