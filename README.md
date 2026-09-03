@@ -1,25 +1,24 @@
-# Pi Pareto Model Picker
+# pi-pareto-model
 
-Pi Pareto Model Picker helps you select a Model Variant in Pi.
+<img width="1245" height="699" alt="Screenshot 2026-09-03 at 7 32 42" src="https://github.com/user-attachments/assets/2f333581-d12b-40b0-9609-852b03b7b971" />
 
-It compares each Model Variant with three measures:
+This is a model picker for Pi that allows you to quickly pick models along a 3-axis Pareto efficiency frontier.
+
+It compares each model variant (model and thinking level combo) with three measures:
 
 - **Smart:** Higher values are better.
 - **Time:** Lower values are better.
 - **Cost:** Lower values are better.
 
-The picker shows the Pareto frontier first. A Model Variant is on this frontier when no other variant is better without a trade-off.
+The model picker is aware of what providers you're currently logged in-to and will hide models you are unable to use. 
 
-The picker uses Pi authentication data, subscription data, and provider prices. It does not send benchmark data to Pi providers.
+The model picker hides any model which is pareto-dominated by another (e.g., you should never use model X because model Y is the cost/intelligence but cheaper).
 
-## Features
+You can shift your preferences between those three criteria dynamically, or cycle through our overall/fast/smart/cheap presets. You can also provide your own presets.
 
-- Compare Model Variants with Smart, Time, and Cost.
-- Show Pareto-efficient choices first.
-- Use all authenticated Pi Provider Routes.
-- Support subscriptions without changing the preferred order of reasoning levels.
-- Load a catalog from a local file, GitHub CLI, or private HTTP URL.
-- Save a different Power Allocation for each Preset.
+The picker is **subscription aware** and will prefer "free" subscribed models when you say they are available.
+
+Data is provided by DeepSWE, though you can substitute in your own source.
 
 ## Contents
 
@@ -66,7 +65,7 @@ Create `~/.pi/agent/pareto-model-picker.json`.
 }
 ```
 
-This source does not require authentication. The picker caches it for 24 hours and loads it once per Pi session. Start a new Pi session to pick up a newer catalog after the cache expires.
+The picker caches it for 24 hours and loads it once per Pi session. Start a new Pi session to pick up a newer catalog after the cache expires.
 
 ### Use a local file
 
@@ -267,18 +266,6 @@ You can replace these names and allocations with any configured Presets. For exa
 
 Each allocation must use nonnegative multiples of `0.25`. The three values must total 12.
 
-## Ranking
-
-The picker measures each value's distance from the best value relative to that measure's interquartile range. Smart and Cost use their linear values. Time uses logarithmic values, so equal time ratios produce equal regret differences.
-
-The interquartile range is the distance between the 25th and 75th percentile values, not a conversion of values into percentile ranks. It gives the three measures comparable catalog-relative units while preserving the magnitude of gaps between Model Variants.
-
-Ranking scales always use the Full Catalog reference frontier, so filtering unavailable models does not change the scores of remaining Model Variants. Changes to the reference frontier can change every score.
-
-The picker first minimizes each Model Variant's largest power-weighted regret. This prevents exceptional performance on one measure from compensating for unacceptable performance on another. Mean power-weighted regret resolves ties.
-
-The Presets do not use a simple sort on one column.
-
 ### Subscription behavior
 
 A subscription changes Pareto domination. It does not change the preference order of the surviving Model Variants.
@@ -297,50 +284,6 @@ A Preset with `subscriptionRoutes: "only"` excludes all metered routes when an I
 For example, a Preset can remove a similar metered model from its frontier. It does not make a high reasoning level more efficient than a medium level.
 
 The Cost column keeps the Reference Task Cost visible and adds `·incl` for an enabled Subscription Route. Press `u` to disable that route for the current Pi session.
-
-### Metric display
-
-Each metric uses a linear scale over the candidates in the current result list. Narrow layouts show a `▁`–`▇` position glyph; wider layouts show a four-cell microbar with fractional blocks. Taller or fuller means better on every axis. The scale remains stable while paging and recomputes when the Preset, search, catalog scope, or Pareto filter changes.
-
-Dominated rows appear below a rule and identify a dominating Model Variant.
-
-## Catalogs and Provider Routes
-
-The catalog supplies these items:
-
-- Model Variants
-- Smart, Time, and Reference Task Cost values
-- Manually verified Pi aliases
-
-The public catalog schema is `schema/model-selection-catalog.schema.json`.
-
-Pi supplies these Provider Route facts:
-
-- Authentication and availability
-- Provider identity and authentication type
-- Input, output, cache-read, and cache-write prices
-
-The picker uses only exact, verified aliases. It does not use fuzzy model-name matching.
-
-For equivalent metered routes, a route can eliminate another route only when all its Pi prices are no higher. At least one price must also be lower.
-
-The picker keeps both routes when their prices cross. The catalog does not contain enough token-use data to select one route safely.
-
-The picker prefers an Included route over an equivalent metered route. Disable the subscription to test the metered route.
-
-The picker never compares provider speed. Equivalent Provider Routes share the same Smart and Reference Task Time values.
-
-### Available Catalog
-
-The Available Catalog contains Provider Routes that Pi can use with current authentication data.
-
-It ignores `enabledModels` and `--models`. Those settings control Pi model cycling, not Provider Route availability.
-
-### Full Catalog
-
-The Full Catalog contains all catalog Model Variants. It also contains variants with no usable Provider Route.
-
-An unavailable row shows verified catalog provider names when they exist. It shows `—` when the variant has no verified provider alias.
 
 ### Subscription policy
 
@@ -361,14 +304,6 @@ It also recognizes these plan providers:
 The policy does not treat Anthropic OAuth as included usage. Pi can bill Claude Pro or Max use as extra usage.
 
 The policy also excludes OpenRouter, Radius, MiniMax, and other ambiguous or metered providers.
-
-## Catalog requirements
-
-Each Model Variant must have finite Smart, Time, and Cost values. These values cannot be null. Time must be greater than zero because ranking uses a logarithmic Time scale.
-
-Each selectable route must have an exact, manually verified Pi alias.
-
-The catalog Cost is a benchmark reference value. It is not the user invoice from a provider.
 
 ## Development
 
