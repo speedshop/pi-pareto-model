@@ -52,6 +52,22 @@ pi -e /absolute/path/to/pi-pareto-model
 
 Create `~/.pi/agent/pareto-model-picker.json`.
 
+### Use the public DeepSWE catalog
+
+[DeepSWE Catalog Digest](https://github.com/speedshop/ds-catalog-digest) publishes a compatible catalog. Configure its stable catalog as a public HTTP source:
+
+```json
+{
+  "source": {
+    "type": "http",
+    "url": "https://raw.githubusercontent.com/speedshop/ds-catalog-digest/main/catalog/model-selection-catalog.json"
+  },
+  "cacheTtlHours": 24
+}
+```
+
+This source does not require authentication. The picker caches it for 24 hours and loads it once per Pi session. Start a new Pi session to pick up a newer catalog after the cache expires.
+
 ### Use a local file
 
 ```json
