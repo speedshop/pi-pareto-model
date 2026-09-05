@@ -7,6 +7,8 @@ The fixture is freely redistributable and intentionally contains:
 - Thirteen Pareto-efficient variants, enough for three picker pages
 - One strictly dominated variant
 - Low, medium, and high variants of GPT-5.5 with progressively higher fabricated intelligence, time, and cost
+- Source origins for Smart, Fast, and Cheap metrics
+- Valid adjusted Fast and Cheap origins using `median-overlap-ratio`
 - Subscription and metered routes
 - One model available through both Baseten and Fireworks
 - One artifact-only, unselectable variant

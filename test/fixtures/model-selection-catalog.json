@@ -46,6 +46,17 @@
       "quantization": null,
       "reasoning": { "label": "High" },
       "metrics": { "smart": 99, "fast": 120, "cheap": 8 },
+      "metricOrigins": {
+        "smart": { "kind": "source", "benchmarkVersion": "fixture-smart-v1" },
+        "fast": { "kind": "source", "benchmarkVersion": "fixture-fast-v1" },
+        "cheap": {
+          "kind": "adjusted",
+          "benchmarkVersion": "fixture-cheap-v1",
+          "sourceBenchmarkVersion": "fixture-cheap-v0",
+          "method": "median-overlap-ratio",
+          "factor": 1.25
+        }
+      },
       "aliases": [
         {
           "provider": "anthropic",
@@ -64,6 +75,17 @@
       "quantization": null,
       "reasoning": { "label": "Medium" },
       "metrics": { "smart": 96, "fast": 80, "cheap": 6 },
+      "metricOrigins": {
+        "smart": { "kind": "source", "benchmarkVersion": "fixture-smart-v1" },
+        "fast": {
+          "kind": "adjusted",
+          "benchmarkVersion": "fixture-fast-v1",
+          "sourceBenchmarkVersion": "fixture-fast-v0",
+          "method": "median-overlap-ratio",
+          "factor": 0.8
+        },
+        "cheap": { "kind": "source", "benchmarkVersion": "fixture-cheap-v1" }
+      },
       "aliases": [
         {
           "provider": "openai-codex",
@@ -82,6 +104,11 @@
       "quantization": null,
       "reasoning": { "label": "High" },
       "metrics": { "smart": 92, "fast": 55, "cheap": 4.5 },
+      "metricOrigins": {
+        "smart": { "kind": "source", "benchmarkVersion": "fixture-smart-v1" },
+        "fast": { "kind": "source", "benchmarkVersion": "fixture-fast-v1" },
+        "cheap": { "kind": "source", "benchmarkVersion": "fixture-cheap-v1" }
+      },
       "aliases": [
         {
           "provider": "openai-codex",
@@ -100,6 +127,11 @@
       "quantization": null,
       "reasoning": { "label": "Medium" },
       "metrics": { "smart": 89, "fast": 40, "cheap": 3 },
+      "metricOrigins": {
+        "smart": { "kind": "source", "benchmarkVersion": "fixture-smart-v1" },
+        "fast": { "kind": "source", "benchmarkVersion": "fixture-fast-v1" },
+        "cheap": { "kind": "source", "benchmarkVersion": "fixture-cheap-v1" }
+      },
       "aliases": [
         {
           "provider": "openai-codex",
@@ -118,6 +150,11 @@
       "quantization": null,
       "reasoning": { "label": "Low" },
       "metrics": { "smart": 84, "fast": 25, "cheap": 1.6 },
+      "metricOrigins": {
+        "smart": { "kind": "source", "benchmarkVersion": "fixture-smart-v1" },
+        "fast": { "kind": "source", "benchmarkVersion": "fixture-fast-v1" },
+        "cheap": { "kind": "source", "benchmarkVersion": "fixture-cheap-v1" }
+      },
       "aliases": [
         {
           "provider": "openai-codex",
@@ -136,6 +173,11 @@
       "quantization": null,
       "reasoning": { "label": "High" },
       "metrics": { "smart": 87, "fast": 30, "cheap": 2.5 },
+      "metricOrigins": {
+        "smart": { "kind": "source", "benchmarkVersion": "fixture-smart-v1" },
+        "fast": { "kind": "source", "benchmarkVersion": "fixture-fast-v1" },
+        "cheap": { "kind": "source", "benchmarkVersion": "fixture-cheap-v1" }
+      },
       "aliases": [
         {
           "provider": "baseten",
@@ -160,6 +202,11 @@
       "quantization": null,
       "reasoning": { "label": "High" },
       "metrics": { "smart": 82, "fast": 18, "cheap": 1.8 },
+      "metricOrigins": {
+        "smart": { "kind": "source", "benchmarkVersion": "fixture-smart-v1" },
+        "fast": { "kind": "source", "benchmarkVersion": "fixture-fast-v1" },
+        "cheap": { "kind": "source", "benchmarkVersion": "fixture-cheap-v1" }
+      },
       "aliases": [
         {
           "provider": "baseten",
@@ -178,6 +225,11 @@
       "quantization": null,
       "reasoning": { "label": "High" },
       "metrics": { "smart": 76, "fast": 13, "cheap": 1.3 },
+      "metricOrigins": {
+        "smart": { "kind": "source", "benchmarkVersion": "fixture-smart-v1" },
+        "fast": { "kind": "source", "benchmarkVersion": "fixture-fast-v1" },
+        "cheap": { "kind": "source", "benchmarkVersion": "fixture-cheap-v1" }
+      },
       "aliases": [
         {
           "provider": "baseten",
@@ -196,6 +248,11 @@
       "quantization": null,
       "reasoning": { "label": "Medium" },
       "metrics": { "smart": 69, "fast": 9, "cheap": 0.8 },
+      "metricOrigins": {
+        "smart": { "kind": "source", "benchmarkVersion": "fixture-smart-v1" },
+        "fast": { "kind": "source", "benchmarkVersion": "fixture-fast-v1" },
+        "cheap": { "kind": "source", "benchmarkVersion": "fixture-cheap-v1" }
+      },
       "aliases": [
         {
           "provider": "baseten",
@@ -214,6 +271,11 @@
       "quantization": null,
       "reasoning": { "label": "Low" },
       "metrics": { "smart": 60, "fast": 6, "cheap": 0.5 },
+      "metricOrigins": {
+        "smart": { "kind": "source", "benchmarkVersion": "fixture-smart-v1" },
+        "fast": { "kind": "source", "benchmarkVersion": "fixture-fast-v1" },
+        "cheap": { "kind": "source", "benchmarkVersion": "fixture-cheap-v1" }
+      },
       "aliases": [
         {
           "provider": "openai-codex",
@@ -232,6 +294,11 @@
       "quantization": null,
       "reasoning": { "label": "Medium" },
       "metrics": { "smart": 57, "fast": 4.5, "cheap": 0.4 },
+      "metricOrigins": {
+        "smart": { "kind": "source", "benchmarkVersion": "fixture-smart-v1" },
+        "fast": { "kind": "source", "benchmarkVersion": "fixture-fast-v1" },
+        "cheap": { "kind": "source", "benchmarkVersion": "fixture-cheap-v1" }
+      },
       "aliases": [
         {
           "provider": "openai-codex",
@@ -250,6 +317,11 @@
       "quantization": null,
       "reasoning": { "label": "High" },
       "metrics": { "smart": 54, "fast": 3, "cheap": 0.3 },
+      "metricOrigins": {
+        "smart": { "kind": "source", "benchmarkVersion": "fixture-smart-v1" },
+        "fast": { "kind": "source", "benchmarkVersion": "fixture-fast-v1" },
+        "cheap": { "kind": "source", "benchmarkVersion": "fixture-cheap-v1" }
+      },
       "aliases": [
         {
           "provider": "baseten",
@@ -268,6 +340,11 @@
       "quantization": null,
       "reasoning": { "label": "Medium" },
       "metrics": { "smart": 50, "fast": 10, "cheap": 1 },
+      "metricOrigins": {
+        "smart": { "kind": "source", "benchmarkVersion": "fixture-smart-v1" },
+        "fast": { "kind": "source", "benchmarkVersion": "fixture-fast-v1" },
+        "cheap": { "kind": "source", "benchmarkVersion": "fixture-cheap-v1" }
+      },
       "aliases": [
         {
           "provider": "baseten",
@@ -286,6 +363,11 @@
       "quantization": null,
       "reasoning": null,
       "metrics": { "smart": 45, "fast": 2, "cheap": 0.08 },
+      "metricOrigins": {
+        "smart": { "kind": "source", "benchmarkVersion": "fixture-smart-v1" },
+        "fast": { "kind": "source", "benchmarkVersion": "fixture-fast-v1" },
+        "cheap": { "kind": "source", "benchmarkVersion": "fixture-cheap-v1" }
+      },
       "aliases": [],
       "provenance": { "fixtureScenario": "unselectable full-catalog model" }
     }

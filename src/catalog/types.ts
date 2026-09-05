@@ -14,6 +14,27 @@ export interface CatalogAlias {
   equivalence: "verified" | "probable";
 }
 
+export interface SourceMetricOrigin {
+  kind: "source";
+  benchmarkVersion: string;
+}
+
+export interface AdjustedMetricOrigin {
+  kind: "adjusted";
+  benchmarkVersion: string;
+  sourceBenchmarkVersion: string;
+  method: "median-overlap-ratio";
+  factor: number;
+}
+
+export type MetricOrigin = SourceMetricOrigin | AdjustedMetricOrigin;
+
+export interface MetricOrigins {
+  smart: SourceMetricOrigin;
+  fast: MetricOrigin;
+  cheap: MetricOrigin;
+}
+
 export interface CatalogVariant {
   id: string;
   creator: string;
@@ -26,6 +47,7 @@ export interface CatalogVariant {
     fast: number;
     cheap: number;
   };
+  metricOrigins: MetricOrigins;
   aliases: CatalogAlias[];
   provenance: Record<string, unknown>;
 }

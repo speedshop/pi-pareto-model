@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.invalid/pi-pareto-model/model-selection-catalog.schema.json",
+  "$id": "https://raw.githubusercontent.com/speedshop/pi-pareto-model/main/schema/model-selection-catalog.schema.json",
   "title": "Pi Pareto Model Selection Catalog",
   "type": "object",
   "additionalProperties": false,
@@ -81,10 +81,51 @@
         "equivalence": { "enum": ["verified", "probable"] }
       }
     },
+    "sourceMetricOrigin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "benchmarkVersion"],
+      "properties": {
+        "kind": { "const": "source" },
+        "benchmarkVersion": { "type": "string", "minLength": 1 }
+      }
+    },
+    "adjustedMetricOrigin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "benchmarkVersion", "sourceBenchmarkVersion", "method", "factor"],
+      "properties": {
+        "kind": { "const": "adjusted" },
+        "benchmarkVersion": { "type": "string", "minLength": 1 },
+        "sourceBenchmarkVersion": { "type": "string", "minLength": 1 },
+        "method": { "const": "median-overlap-ratio" },
+        "factor": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "metricOrigins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["smart", "fast", "cheap"],
+      "properties": {
+        "smart": { "$ref": "#/definitions/sourceMetricOrigin" },
+        "fast": {
+          "oneOf": [
+            { "$ref": "#/definitions/sourceMetricOrigin" },
+            { "$ref": "#/definitions/adjustedMetricOrigin" }
+          ]
+        },
+        "cheap": {
+          "oneOf": [
+            { "$ref": "#/definitions/sourceMetricOrigin" },
+            { "$ref": "#/definitions/adjustedMetricOrigin" }
+          ]
+        }
+      }
+    },
     "variant": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "creator", "displayName", "checkpoint", "quantization", "metrics", "aliases", "provenance"],
+      "required": ["id", "creator", "displayName", "checkpoint", "quantization", "metrics", "metricOrigins", "aliases", "provenance"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
         "creator": { "type": "string", "minLength": 1 },
@@ -107,6 +148,7 @@
             "cheap": { "type": "number", "minimum": 0 }
           }
         },
+        "metricOrigins": { "$ref": "#/definitions/metricOrigins" },
         "aliases": { "type": "array", "items": { "$ref": "#/definitions/alias" } },
         "provenance": { "type": "object" }
       }
