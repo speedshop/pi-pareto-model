@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/speedshop/pi-pareto-model/main/schema/model-selection-catalog.schema.json",
+  "$id": "https://raw.githubusercontent.com/speedshop/pi-pareto-model/catalog-v1/schema/model-selection-catalog.schema.json",
   "title": "Pi Pareto Model Selection Catalog",
   "type": "object",
   "additionalProperties": false,
