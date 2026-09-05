@@ -305,6 +305,47 @@ The policy does not treat Anthropic OAuth as included usage. Pi can bill Claude 
 
 The policy also excludes OpenRouter, Radius, MiniMax, and other ambiguous or metered providers.
 
+## Catalogs and Provider Routes
+
+A catalog describes Model Variants and their benchmark metrics. Its aliases map each variant to zero or more Pi Provider Routes; an alias may include a Pi thinking level, and multiple aliases may identify equivalent routes. Route pricing and availability still come from Pi rather than the catalog.
+
+## Catalog requirements
+
+[`schema/model-selection-catalog.schema.json`](schema/model-selection-catalog.schema.json) is the source-neutral, canonical catalog-v1 contract. Catalogs must use the numeric `"schemaVersion": 1`; semver strings and unknown numeric versions are rejected.
+
+Every variant supplies Smart, Fast, and Cheap values plus an origin for each value. Smart is always measured directly by its source benchmark:
+
+```json
+"metricOrigins": {
+  "smart": { "kind": "source", "benchmarkVersion": "smart-2026-01" },
+  "fast": { "kind": "source", "benchmarkVersion": "tasks-2026-01" },
+  "cheap": { "kind": "source", "benchmarkVersion": "tasks-2026-01" }
+}
+```
+
+Fast and Cheap may instead be adjusted onto a common benchmark version. The only catalog-v1 adjustment method is `median-overlap-ratio`, and its factor must be greater than zero:
+
+```json
+"fast": {
+  "kind": "adjusted",
+  "benchmarkVersion": "tasks-2026-01",
+  "sourceBenchmarkVersion": "tasks-2025-12",
+  "method": "median-overlap-ratio",
+  "factor": 1.08
+}
+```
+
+Smart accepts any finite JSON number. Fast must be greater than zero because ranking uses a logarithmic scale, while Cheap may be zero. Catalog and variant `provenance` objects remain open so producers can record source-specific evidence without changing this source-neutral contract. See the schema for the complete required metadata and alias fields.
+
+Producer repositories that vendor the schema should copy this file unchanged and gate the copy byte-for-byte in local CI. When this package is installed as a development dependency, a durable offline check is:
+
+```sh
+cmp --silent schema/model-selection-catalog.schema.json \
+  node_modules/pi-pareto-model/schema/model-selection-catalog.schema.json
+```
+
+The same command can point at a pinned local checkout of this repository instead of `node_modules`. A zero exit status proves the vendored bytes match the canonical schema; no network or publishing step is needed.
+
 ## Development
 
 Install dependencies and run all checks:
