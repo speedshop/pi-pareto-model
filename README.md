@@ -26,20 +26,27 @@ Data is provided by DeepSWE, though you can substitute in your own source.
 
 ## Build the page
 
-[DeepSWE Catalog Digest](https://github.com/speedshop/ds-catalog-digest) publishes a compatible, redistributable catalog. Download it and build the page:
+[DeepSWE Catalog Digest](https://github.com/speedshop/ds-catalog-digest) publishes a compatible, redistributable catalog. The `build` task downloads it and builds the page:
 
 ```fish
 npm install
-curl -sSLo /tmp/ds-catalog.json https://raw.githubusercontent.com/speedshop/ds-catalog-digest/main/catalog/model-selection-catalog.json
-npm run build:preset-map -- --catalog /tmp/ds-catalog.json
+mise run build
 open preset-map.html
 ```
 
-Without `--catalog`, the build reads the catalog source from a configuration file. See [Catalog configuration](#catalog-configuration).
+Pass `--url` to build from a different catalog URL, `--output` to change the output path, and `--allow-restricted` to build a private copy from a catalog that forbids redistribution:
+
+```fish
+mise run build --url https://example.com/model-selection-catalog.json --output tmp/example.html
+```
+
+`mise run build:aa` builds `preset-map-aa.html` from the private Artificial Analysis catalog through the active GitHub CLI account. Do not publish that page.
+
+The same options work without mise through `npm run build:preset-map -- --url URL`. Without `--catalog` or `--url`, the build reads the catalog source from a configuration file. See [Catalog configuration](#catalog-configuration).
 
 The build:
 
-1. Loads the catalog from `--catalog`, or from the configured file, GitHub, or HTTP source.
+1. Loads the catalog from `--catalog` or `--url`, or from the configured file, GitHub, or HTTP source.
 2. Validates the catalog against the schema for its `schemaVersion`.
 3. Checks that the catalog allows redistribution.
 4. Embeds each variant's id, display name, creator, release date when present, and metrics.
@@ -51,6 +58,7 @@ The build:
 | Option | Purpose |
 |---|---|
 | `--catalog PATH` | Read a catalog file directly |
+| `--url URL` | Download the catalog from this URL |
 | `--config PATH` | Read the catalog source from this configuration file |
 | `--output PATH` | Write the HTML here (default: `preset-map.html`) |
 | `--template PATH` | Use a different HTML template |
@@ -67,7 +75,7 @@ Git ignores every `preset-map*.html` file except the template.
 
 ## Catalog configuration
 
-Without `--catalog`, the build reads a configuration file. `--config PATH` is an exclusive override: the build reads only that file and fails if it is missing. Only when `--config` is omitted does the build look for the first file that exists:
+Without `--catalog` or `--url`, the build reads a configuration file. `--config PATH` is an exclusive override: the build reads only that file and fails if it is missing. Only when `--config` is omitted does the build look for the first file that exists:
 
 1. `.pi/pareto-model-picker.json` in this repository
 2. `~/.pi/agent/pareto-model-picker.json`

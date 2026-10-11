@@ -24,7 +24,10 @@ function parseArguments(argv) {
     const argument = argv[index];
     if (argument === "--help") options.help = true;
     else if (argument === "--allow-restricted") options.allowRestricted = true;
-    else if (VALUE_OPTIONS[argument] && argv[index + 1]) {
+    else if (argument === "--url" && argv[index + 1]) {
+      options.url = argv[index + 1];
+      index += 1;
+    } else if (VALUE_OPTIONS[argument] && argv[index + 1]) {
       options[VALUE_OPTIONS[argument]] = resolve(argv[index + 1]);
       index += 1;
     } else throw new Error(`Unknown or incomplete argument: ${argument}`);
@@ -40,6 +43,7 @@ Usage:
 
 Options:
   --catalog PATH        Read a catalog file directly
+  --url URL             Download the catalog from this URL
   --config PATH         Read the catalog source from this config
   --output PATH         HTML output (default: preset-map.html)
   --template PATH       HTML template override
@@ -69,8 +73,15 @@ async function locateConfig(explicitPath) {
   return { path, config: JSON.parse(await readFile(path, "utf8")) };
 }
 
+async function fetchCatalog(url, headers = {}) {
+  const response = await fetch(url, { headers });
+  if (!response.ok) throw new Error(`Catalog request failed: ${response.status} ${response.statusText}`);
+  return response.json();
+}
+
 async function loadCatalog(options) {
   if (options.catalog) return JSON.parse(await readFile(options.catalog, "utf8"));
+  if (options.url) return fetchCatalog(options.url);
   const located = await locateConfig(options.config);
   const { source } = located.config;
   if (!source) throw new Error(`Missing source in ${located.path}`);
@@ -94,9 +105,7 @@ async function loadCatalog(options) {
     const headers = Object.fromEntries(
       Object.entries(source.headers ?? {}).map(([name, value]) => [name, interpolateEnvironment(value)]),
     );
-    const response = await fetch(interpolateEnvironment(source.url), { headers });
-    if (!response.ok) throw new Error(`Catalog request failed: ${response.status} ${response.statusText}`);
-    return response.json();
+    return fetchCatalog(interpolateEnvironment(source.url), headers);
   }
 
   throw new Error(`Unsupported catalog source: ${source.type}`);
