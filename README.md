@@ -144,7 +144,7 @@ Do not put the token value in the configuration file. The URL and header values 
 
 Each corner puts all 12 power units on one measure: Smart at the bottom left, Time at the top, and Cost at the bottom right.
 
-Each hexagon is one whole-unit Power Allocation. Each edge runs 12 whole-unit steps from one pure pole to the next, giving 13 hexagons per edge and 91 in total. A hexagon's color names the top-ranked frontier model for its allocation. Colors follow the model family, and higher thinking effort uses a darker shade. Adjacent hexagons with the same winner form a labelled region.
+Each hexagon is one whole-unit Power Allocation. Each edge runs 12 whole-unit steps from one pure pole to the next, giving 13 hexagons per edge and 91 in total. A hexagon's color names the top-ranked frontier model for its allocation. Colors follow the model family, and higher thinking effort uses a darker shade. Adjacent hexagons with the same winner form a region. The page labels regions largest first, each on an opaque backing in the region's color. It skips a label that would collide with a larger label or a built-in Preset dot, and it skips single-hexagon regions. Hover over or focus any hexagon to name its winner.
 
 Click a hexagon to choose its allocation. The ring marks the current allocation, which can sit between hexagons at quarter-unit positions.
 
@@ -170,7 +170,7 @@ The page has these built-in Presets. The values use Smart/Time/Cost order:
 | Smart | `8/2.25/1.75` | Give strong priority to Smart |
 | Cheap | `1.25/1/9.75` | Give the most power to Cost |
 
-Click a Preset chip to jump to its allocation. Each Preset also appears as a labelled dot on the triangle.
+Click a Preset chip to jump to its allocation. Each Preset also appears as a dot on the triangle. Hover over a dot to see its name, or click it to jump to its allocation.
 
 Enter a name and click **Save as preset** to keep the current allocation. The browser stores saved Presets in `localStorage`, so they stay on that browser only. Click **×** on a saved Preset to remove it.
 

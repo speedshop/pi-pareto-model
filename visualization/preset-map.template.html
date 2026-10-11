@@ -88,7 +88,7 @@
       stroke-width: 3;
     }
 
-    #labels, #preset-dots, #marker { pointer-events: none; }
+    #labels, #marker { pointer-events: none; }
 
     .hex-label {
       font-size: 13px;
@@ -96,9 +96,6 @@
       letter-spacing: -0.045em;
       line-height: 1;
       text-anchor: middle;
-      paint-order: stroke;
-      stroke-width: 8px;
-      stroke-linejoin: round;
     }
 
     .hex-label .qualifier {
@@ -130,19 +127,9 @@
       stroke-width: 2;
     }
 
-    .preset-dot.custom circle { stroke-dasharray: 2 2; }
+    .preset-dot { cursor: pointer; }
 
-    .preset-dot text {
-      fill: var(--ink);
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-      paint-order: stroke;
-      stroke: var(--paper);
-      stroke-width: 5px;
-      stroke-linejoin: round;
-    }
+    .preset-dot.custom circle { stroke-dasharray: 2 2; }
 
     #marker circle.outer {
       fill: none;
@@ -239,6 +226,8 @@
     }
 
     button:disabled { opacity: 0.35; cursor: default; }
+
+    .preset-note { margin: -2px 0 8px; }
 
     .caption {
       margin: 2px 0 0;
@@ -489,6 +478,7 @@
       </div>
       <div>
         <p class="eyebrow">Presets</p>
+        <p class="caption preset-note">Dots on the triangle mark each preset.</p>
         <div class="presets">
           <div class="presets" id="preset-chips"></div>
           <form class="save" id="save-preset">
@@ -746,31 +736,71 @@ __RANKING_MODULE__
       };
     }
 
-    connectedRegions().forEach((region) => {
-      const { winner } = region[0];
-      const lines = compactLabel(winner.name);
-      const layout = regionLayout(region);
-      const text = svgElement("text", {
-        class: "hex-label",
-        x: layout.x,
-        y: layout.y - (lines.length - 1) * layout.fontSize * 0.38,
-        fill: winner.ink,
-        stroke: winner.color,
-        style: `font-size:${layout.fontSize}px`,
-        transform: `rotate(${layout.rotation} ${layout.x} ${layout.y})`,
-      });
-      lines.forEach((line, index) => {
-        const span = svgElement("tspan", {
-          x: layout.x,
-          dy: index === 0 ? 0 : layout.fontSize * 0.82,
-          class: index === 0 ? "" : "qualifier",
-          style: index === 0 ? "" : `font-size:${layout.fontSize * 0.68}px`,
-        });
-        span.textContent = line;
-        text.append(span);
-      });
-      labels.append(text);
+    function rotatedBounds(box, layout) {
+      const angle = layout.rotation * Math.PI / 180;
+      const corners = [[box.x, box.y], [box.x + box.width, box.y], [box.x, box.y + box.height], [box.x + box.width, box.y + box.height]]
+        .map(([x, y]) => ({
+          x: layout.x + (x - layout.x) * Math.cos(angle) - (y - layout.y) * Math.sin(angle),
+          y: layout.y + (x - layout.x) * Math.sin(angle) + (y - layout.y) * Math.cos(angle),
+        }));
+      const xs = corners.map((corner) => corner.x);
+      const ys = corners.map((corner) => corner.y);
+      return { left: Math.min(...xs), right: Math.max(...xs), top: Math.min(...ys), bottom: Math.max(...ys) };
+    }
+
+    function intersects(left, right) {
+      return left.left < right.right && right.left < left.right && left.top < right.bottom && right.top < left.bottom;
+    }
+
+    const placedLabels = Object.values(DEFAULT_PRESETS).map((preset) => {
+      const point = allocationPoint(preset);
+      return { left: point.x - 6, right: point.x + 6, top: point.y - 6, bottom: point.y + 6 };
     });
+    connectedRegions()
+      .filter((region) => region.length > 1)
+      .sort((left, right) => right.length - left.length)
+      .forEach((region) => {
+        const { winner } = region[0];
+        const lines = compactLabel(winner.name);
+        const layout = regionLayout(region);
+        const label = svgElement("g", {
+          class: "hex-label",
+          fill: winner.ink,
+          style: `font-size:${layout.fontSize}px`,
+          transform: `rotate(${layout.rotation} ${layout.x} ${layout.y})`,
+        });
+        const text = svgElement("text", {
+          x: layout.x,
+          y: layout.y - (lines.length - 1) * layout.fontSize * 0.38,
+        });
+        lines.forEach((line, index) => {
+          const span = svgElement("tspan", {
+            x: layout.x,
+            dy: index === 0 ? 0 : layout.fontSize * 0.82,
+            class: index === 0 ? "" : "qualifier",
+            style: index === 0 ? "" : `font-size:${layout.fontSize * 0.68}px`,
+          });
+          span.textContent = line;
+          text.append(span);
+        });
+        label.append(text);
+        labels.append(label);
+        const padding = 4;
+        const measured = text.getBBox();
+        const box = {
+          x: measured.x - padding,
+          y: measured.y - padding,
+          width: measured.width + padding * 2,
+          height: measured.height + padding * 2,
+        };
+        const bounds = rotatedBounds(box, layout);
+        if (placedLabels.some((placed) => intersects(placed, bounds))) {
+          label.remove();
+          return;
+        }
+        placedLabels.push(bounds);
+        label.prepend(svgElement("rect", { ...box, rx: 4, fill: winner.color }));
+      });
 
     function readCustomPresets() {
       try {
@@ -852,10 +882,15 @@ __RANKING_MODULE__
       presetChips.replaceChildren();
       presets().forEach((preset) => {
         const point = allocationPoint(preset.allocation);
-        const dot = svgElement("g", { class: preset.builtIn ? "preset-dot" : "preset-dot custom" });
-        const label = svgElement("text", { x: point.x + 8, y: point.y - 7 });
-        label.textContent = preset.name;
-        dot.append(svgElement("circle", { cx: point.x, cy: point.y, r: 4.5 }), label);
+        const dot = svgElement("g", {
+          class: preset.builtIn ? "preset-dot" : "preset-dot custom",
+          role: "img",
+          "aria-label": `${preset.name} preset: ${describeAllocation(preset.allocation)}`,
+        });
+        const title = svgElement("title");
+        title.textContent = `${preset.name} preset`;
+        dot.append(title, svgElement("circle", { cx: point.x, cy: point.y, r: 4.5 }));
+        dot.addEventListener("click", () => setAllocation({ ...preset.allocation }));
         presetDots.append(dot);
 
         const group = htmlElement("span", { class: "chip-group" });
