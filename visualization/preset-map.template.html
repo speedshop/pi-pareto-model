@@ -248,8 +248,6 @@
 
     button:disabled { opacity: 0.35; cursor: default; }
 
-    .preset-note { margin: -2px 0 8px; }
-
     .caption {
       margin: 2px 0 0;
       color: var(--muted);
@@ -594,7 +592,7 @@
       </div>
       <div>
         <p class="eyebrow">Presets</p>
-        <p class="caption preset-note">Dots on the triangle mark each preset.</p>
+        <p class="caption">Dots on the triangle mark each preset.</p>
         <div class="presets">
           <div class="presets" id="preset-chips"></div>
           <div class="save">
@@ -638,7 +636,7 @@
     </footer>
   </main>
 
-  <div class="summary" role="status" aria-label="Current allocation and top model">
+  <div class="summary" role="status" aria-live="off" aria-label="Current allocation and top model">
     <p class="model"><span class="swatch" id="summary-swatch"></span><span><span class="name" id="summary-name"></span> <span class="creator" id="summary-creator"></span></span></p>
     <div class="summary-axes" id="summary-axes"></div>
   </div>
@@ -1240,7 +1238,7 @@ __RANKING_MODULE__
 
     const map = document.querySelector(".map");
     const marker = document.querySelector("#marker");
-    let pressed = false;
+    let press = null;
 
     function writeHash() {
       const hash = `#${AXES.map((axis) => `${HASH_KEYS[axis]}=${formatPower(allocation[axis])}`).join("&")}`;
@@ -1265,7 +1263,7 @@ __RANKING_MODULE__
       });
       renderChipState();
       renderTable();
-      if (!pressed) writeHash();
+      if (!press) writeHash();
     }
 
     function setAllocation(next) {
@@ -1318,7 +1316,7 @@ __RANKING_MODULE__
 
     map.addEventListener("pointerdown", (event) => {
       if (!event.isPrimary || event.button !== 0) return;
-      pressed = true;
+      press = { x: event.clientX, y: event.clientY, dragging: false };
       const cell = cells.find((candidate) => candidate.group === event.target.closest(".hex"));
       if (!cell) return;
       focusCell(cell);
@@ -1326,14 +1324,16 @@ __RANKING_MODULE__
     });
 
     window.addEventListener("pointermove", (event) => {
-      if (!pressed || !event.isPrimary) return;
+      if (!press || !event.isPrimary) return;
+      if (!press.dragging && Math.hypot(event.clientX - press.x, event.clientY - press.y) <= 6) return;
+      press.dragging = true;
       const next = pointerAllocation(event);
       if (!sameAllocation(next, allocation)) setAllocation(next);
     });
 
     ["pointerup", "pointercancel"].forEach((type) => window.addEventListener(type, (event) => {
-      if (!pressed || !event.isPrimary) return;
-      pressed = false;
+      if (!press || !event.isPrimary) return;
+      press = null;
       writeHash();
     }));
 
@@ -1343,6 +1343,11 @@ __RANKING_MODULE__
     }).observe(summary);
 
     cells.forEach((cell) => {
+      cell.group.addEventListener("click", (event) => {
+        if (event.detail !== 0) return;
+        focusCell(cell);
+        chooseCell(cell);
+      });
       cell.group.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
