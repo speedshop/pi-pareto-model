@@ -3,3 +3,4 @@ node_modules/
 .pi/pareto-model-picker.json
 preset-map*.html
 .DS_Store
+!visualization/preset-map.template.html

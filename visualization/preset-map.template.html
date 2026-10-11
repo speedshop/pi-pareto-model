@@ -1,0 +1,1083 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pareto model triangle</title>
+  <style>
+    :root {
+      --paper: #f5f3ee;
+      --ink: #15171b;
+      --muted: #656b76;
+      --slate: #5c6574;
+      --rule: rgba(25, 29, 35, 0.14);
+      --card: rgba(255, 255, 255, 0.46);
+      --bar: #3d4654;
+      --bar-track: rgba(25, 29, 35, 0.09);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 7%, rgba(255, 255, 255, 0.9), transparent 30rem),
+        radial-gradient(circle at 85% 80%, rgba(213, 207, 194, 0.24), transparent 34rem),
+        var(--paper);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(100%, 940px);
+      margin: 0 auto;
+      padding: clamp(18px, 4vw, 42px) clamp(8px, 2vw, 20px) 34px;
+    }
+
+    header {
+      margin-bottom: 2px;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.15rem, 2.2vw, 1.6rem);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+
+    header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: clamp(0.74rem, 1.4vw, 0.9rem);
+    }
+
+    button, input { font: inherit; color: inherit; }
+
+    :focus-visible {
+      outline: 2px solid var(--ink);
+      outline-offset: 2px;
+    }
+
+    .map {
+      display: block;
+      width: 100%;
+      height: auto;
+      overflow: visible;
+    }
+
+    .hex {
+      cursor: pointer;
+      outline: none;
+    }
+
+    .hex polygon {
+      stroke: rgba(245, 243, 238, 0.35);
+      stroke-width: 1.5;
+      stroke-linejoin: round;
+      transition: filter 150ms ease, opacity 150ms ease;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .hex:hover polygon,
+    .hex:focus-visible polygon,
+    .hex.active polygon {
+      filter: saturate(1.09) brightness(1.04) drop-shadow(0 5px 6px rgba(20, 24, 30, 0.22));
+      stroke: rgba(255, 255, 255, 0.92);
+      stroke-width: 3;
+    }
+
+    #labels, #preset-dots, #marker { pointer-events: none; }
+
+    .hex-label {
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: -0.045em;
+      line-height: 1;
+      text-anchor: middle;
+      paint-order: stroke;
+      stroke-width: 2.5px;
+      stroke-linejoin: round;
+    }
+
+    .hex-label .qualifier {
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: -0.02em;
+    }
+
+    .pole rect { fill: var(--slate); }
+    .pole text {
+      fill: #fff;
+      font-size: 16px;
+      font-weight: 950;
+      letter-spacing: 0.025em;
+      text-anchor: middle;
+    }
+
+    .triangle-outline {
+      fill: none;
+      stroke: rgba(55, 62, 73, 0.26);
+      stroke-width: 2;
+      pointer-events: none;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .preset-dot circle {
+      fill: var(--paper);
+      stroke: var(--ink);
+      stroke-width: 2;
+    }
+
+    .preset-dot.custom circle { stroke-dasharray: 2 2; }
+
+    .preset-dot text {
+      fill: var(--ink);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      paint-order: stroke;
+      stroke: rgba(245, 243, 238, 0.85);
+      stroke-width: 3px;
+      stroke-linejoin: round;
+    }
+
+    #marker circle.outer {
+      fill: none;
+      stroke: var(--ink);
+      stroke-width: 5;
+    }
+
+    #marker circle.inner {
+      fill: none;
+      stroke: #fff;
+      stroke-width: 2.5;
+    }
+
+    .panel {
+      width: min(100% - 20px, 790px);
+      margin: 0 auto;
+      padding: 17px 20px;
+      border: 1px solid var(--rule);
+      border-radius: 17px;
+      background: var(--card);
+      box-shadow: 0 14px 42px rgba(45, 43, 37, 0.06);
+    }
+
+    .controls {
+      display: grid;
+      gap: 14px;
+      margin-top: -4px;
+    }
+
+    .eyebrow {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 0.64rem;
+      font-weight: 900;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    .allocation {
+      display: grid;
+      gap: 6px;
+    }
+
+    .axis-row {
+      display: grid;
+      grid-template-columns: 3.4rem 3rem 1fr auto;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.82rem;
+    }
+
+    .axis-row .name {
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 0.72rem;
+    }
+
+    .axis-row .value {
+      font-variant-numeric: tabular-nums;
+      font-weight: 850;
+      text-align: right;
+    }
+
+    .power-bar {
+      height: 10px;
+      border-radius: 5px;
+      background: var(--bar-track);
+      overflow: hidden;
+    }
+
+    .power-bar span {
+      display: block;
+      height: 100%;
+      background: var(--slate);
+      border-radius: 5px;
+      transition: width 120ms ease;
+    }
+
+    .steppers { display: flex; gap: 4px; }
+
+    .steppers button, .chip, .save button {
+      border: 1px solid var(--rule);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.7);
+      cursor: pointer;
+    }
+
+    .steppers button {
+      width: 2rem;
+      height: 1.6rem;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    button:disabled { opacity: 0.35; cursor: default; }
+
+    .caption {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+
+    .presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .chip-group { display: inline-flex; }
+
+    .chip {
+      padding: 4px 11px;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .chip[aria-pressed="true"] {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #fff;
+    }
+
+    .chip-group .chip.has-remove {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .chip-group .remove {
+      padding: 4px 8px;
+      border-left: 0;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      font-weight: 900;
+    }
+
+    .save {
+      display: inline-flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .save input {
+      width: 9rem;
+      padding: 3px 10px;
+      border: 1px solid var(--rule);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.85);
+      font-size: 0.78rem;
+    }
+
+    .save button {
+      padding: 4px 11px;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .results { margin-top: 14px; }
+
+    .table-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 0.78rem;
+    }
+
+    .table-tools input[type="search"] {
+      flex: 1 1 14rem;
+      padding: 5px 12px;
+      border: 1px solid var(--rule);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.85);
+    }
+
+    .table-tools label { display: inline-flex; gap: 6px; align-items: center; font-weight: 700; }
+
+    .table-scroll { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    caption {
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    th {
+      padding: 5px 8px;
+      border-bottom: 1px solid var(--rule);
+      color: var(--muted);
+      font-size: 0.64rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-align: left;
+      text-transform: uppercase;
+    }
+
+    td {
+      padding: 5px 8px;
+      border-bottom: 1px solid rgba(25, 29, 35, 0.06);
+      vertical-align: middle;
+    }
+
+    td.rank, th.rank { width: 2.2rem; text-align: right; }
+    td.rank { color: var(--muted); font-weight: 800; }
+
+    .model { display: flex; gap: 8px; align-items: center; }
+
+    .swatch {
+      flex: none;
+      width: 11px;
+      height: 11px;
+      border-radius: 3px;
+    }
+
+    .model .name { font-weight: 800; }
+    .model .creator, .model .dominator { color: var(--muted); font-weight: 500; }
+    .model .dominator { display: block; font-size: 0.68rem; }
+
+    .metric {
+      display: grid;
+      grid-template-columns: 3.2rem 3.4rem;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .metric .value { text-align: right; }
+
+    .microbar {
+      height: 6px;
+      border-radius: 3px;
+      background: var(--bar-track);
+      overflow: hidden;
+    }
+
+    .microbar span {
+      display: block;
+      height: 100%;
+      background: var(--bar);
+    }
+
+    td.regret { text-align: right; }
+
+    tr.top td { background: rgba(255, 255, 255, 0.75); }
+    tr.top td:first-child { box-shadow: inset 3px 0 0 var(--ink); }
+    tr.flash td { animation: flash 900ms ease; }
+    tr.dominated td { opacity: 0.48; }
+
+    @keyframes flash {
+      from { background: rgba(255, 228, 140, 0.85); }
+    }
+
+    footer {
+      margin-top: 13px;
+      color: #7b8088;
+      font-size: 0.68rem;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
+    @media (max-width: 650px) {
+      .hex-label { font-size: 11px; }
+      .hex-label .qualifier { font-size: 8px; }
+      .save { margin-left: 0; }
+      .metric { grid-template-columns: 2.4rem 3.2rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>The Pareto frontier, power by power.</h1>
+      <p>Each hexagon is one whole-unit Power Allocation of 12. Its color names the top-ranked frontier model.</p>
+    </header>
+
+    <svg class="map" viewBox="0 0 800 700" role="group" aria-labelledby="map-title map-description">
+      <title id="map-title">Pareto model triangle</title>
+      <desc id="map-description">A triangular field of hexagons. Each corner puts all 12 power units on Smart, Time, or Cost. Each colored region names the top-ranked frontier model for its allocations. Use the arrow keys to move between hexagons and Enter to choose one.</desc>
+      <defs>
+        <clipPath id="triangle-clip">
+          <path d="M400 70 L72 636 L728 636 Z" />
+        </clipPath>
+        <filter id="paper-grain" x="-10%" y="-10%" width="120%" height="120%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="2" seed="11" result="noise" />
+          <feColorMatrix in="noise" type="saturate" values="0" result="gray" />
+          <feComponentTransfer in="gray" result="faint-noise">
+            <feFuncA type="table" tableValues="0 0.055" />
+          </feComponentTransfer>
+          <feBlend in="SourceGraphic" in2="faint-noise" mode="multiply" />
+        </filter>
+      </defs>
+
+      <g id="hexes" clip-path="url(#triangle-clip)" filter="url(#paper-grain)"></g>
+      <path class="triangle-outline" d="M400 70 L72 636 L728 636 Z" />
+      <g id="labels"></g>
+      <g id="preset-dots"></g>
+      <g id="marker">
+        <circle class="outer" r="9" />
+        <circle class="inner" r="9" />
+      </g>
+
+      <g class="pole" transform="translate(364 22)">
+        <rect width="72" height="31" rx="15.5" />
+        <text x="36" y="21">TIME</text>
+      </g>
+      <g class="pole" transform="translate(9 646)">
+        <rect width="84" height="31" rx="15.5" />
+        <text x="42" y="21">SMART</text>
+      </g>
+      <g class="pole" transform="translate(707 646)">
+        <rect width="76" height="31" rx="15.5" />
+        <text x="38" y="21">COST</text>
+      </g>
+    </svg>
+
+    <section class="panel controls" aria-label="Power Allocation">
+      <div>
+        <p class="eyebrow" id="allocation-title">Power Allocation · 12 units</p>
+        <div class="allocation" id="allocation" aria-labelledby="allocation-title"></div>
+        <p class="caption" id="allocation-rule">+ takes ¼ unit from the largest other axis. − gives ¼ unit to the largest other axis.</p>
+      </div>
+      <div>
+        <p class="eyebrow">Presets</p>
+        <div class="presets">
+          <div class="presets" id="preset-chips"></div>
+          <form class="save" id="save-preset">
+            <input id="preset-name" type="text" maxlength="40" required placeholder="Preset name" aria-label="Preset name">
+            <button type="submit">Save as preset</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel results" aria-label="Ranked models">
+      <div class="table-tools">
+        <input id="search" type="search" placeholder="Filter by model or creator" aria-label="Filter by model or creator">
+        <label><input id="show-dominated" type="checkbox"> Show dominated</label>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <caption id="table-caption" aria-live="polite"></caption>
+          <thead>
+            <tr>
+              <th class="rank" scope="col">#</th>
+              <th scope="col">Model</th>
+              <th scope="col">Smart</th>
+              <th scope="col">Time</th>
+              <th scope="col">Cost</th>
+              <th scope="col" class="regret">Worst regret</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>
+      Full Catalog, Reference Task Cost, Pareto frontier over powered axes, then interquartile minimax regret.<br>
+      <span id="source-note"></span>
+    </footer>
+  </main>
+
+  <script>
+__RANKING_MODULE__
+
+    const mapData = __PRESET_MAP_DATA__;
+    const { catalog, variants } = mapData;
+    const AXIS_LABELS = { smart: "Smart", fast: "Time", cheap: "Cost" };
+    const HASH_KEYS = { smart: "s", fast: "t", cheap: "c" };
+    const PRESET_LABELS = { overall: "Overall", fast: "Fast", smart: "Smart", cheap: "Cheap" };
+    const STORAGE_KEY = "pareto-model-presets";
+    const triangle = {
+      smart: { x: 72, y: 636 },
+      fast: { x: 400, y: 70 },
+      cheap: { x: 728, y: 636 },
+    };
+    const palette = [
+      "#1764ed",
+      "#e52b24",
+      "#079c48",
+      "#e9b600",
+      "#7131dc",
+      "#00acc7",
+      "#df1499",
+      "#008c80",
+      "#ed530c",
+      "#393cdb",
+      "#df8500",
+      "#72a008",
+      "#a526c4",
+      "#007db8",
+    ];
+    function modelColors(name) {
+      // Strip thinking qualifiers only; release dates and other identifiers stay distinct.
+      let effort;
+      const family = name.replace(/\s*\(([^)]*)\)/g, (match, qualifier) => {
+        const level = qualifier.match(/\b(low|medium|high|xhigh|max) effort\b/i)
+          ?? qualifier.match(/^(low|medium|high|xhigh|max|non-reasoning)$/i);
+        if (!level) return match;
+        effort = level[1].toLowerCase();
+        return "";
+      }).trim().toLowerCase();
+      // Hash the family so its color stays the same across maps and catalog updates.
+      const hash = Array.from(family).reduce((value, character) =>
+        (Math.imul(value, 31) + character.charCodeAt(0)) >>> 0, 0);
+      const base = palette[hash % palette.length];
+      const shade = { "non-reasoning": 0.25, low: 0.1, medium: -0.05, high: -0.2, xhigh: -0.35, max: -0.5 }[effort] ?? -0.2;
+      const rgb = base.match(/[a-f\d]{2}/gi).map((hex) => {
+        const channel = parseInt(hex, 16);
+        return Math.round(shade >= 0 ? channel + (255 - channel) * shade : channel * (1 + shade));
+      });
+      const linear = rgb.map((channel) => {
+        const value = channel / 255;
+        return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+      });
+      const luminance = linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+      return [`rgb(${rgb.join(", ")})`, luminance > 0.179 ? "#000000" : "#ffffff"];
+    }
+
+    function compactQualifier(parenthetical) {
+      const effort = parenthetical.match(/(low|medium|high|xhigh|max) effort/i)?.[1]
+        ?? parenthetical.match(/^(low|medium|high|xhigh|max)$/i)?.[1];
+      if (effort) return effort.toLowerCase();
+      return parenthetical.match(/non-reasoning/i) ? "non-reasoning" : "";
+    }
+
+    function compactLabel(name) {
+      const parenthetical = name.match(/\(([^)]*)\)/)?.[1] ?? "";
+      const qualifier = compactQualifier(parenthetical);
+      const base = name.replace(/\s*\([^)]*\).*$/, "").replace(/^Claude\s+/, "");
+      const words = base.split(/\s+/);
+      if (words.length < 3) return qualifier ? [base, qualifier] : [base];
+      const split = Math.ceil(words.length / 2);
+      const lines = [words.slice(0, split).join(" "), words.slice(split).join(" ")];
+      if (qualifier) lines[1] += ` · ${qualifier}`;
+      return lines;
+    }
+
+    variants.forEach((variant) => {
+      [variant.color, variant.ink] = modelColors(variant.name);
+    });
+    const variantsById = new Map(variants.map((variant) => [variant.id, variant]));
+
+    function svgElement(name, attributes = {}) {
+      const element = document.createElementNS("http://www.w3.org/2000/svg", name);
+      Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+      return element;
+    }
+
+    function htmlElement(name, attributes = {}, text) {
+      const element = document.createElement(name);
+      Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+      if (text !== undefined) element.textContent = text;
+      return element;
+    }
+
+    function allocationPoint(allocation) {
+      return AXES.reduce((point, axis) => ({
+        x: point.x + triangle[axis].x * allocation[axis] / TOTAL_POWER,
+        y: point.y + triangle[axis].y * allocation[axis] / TOTAL_POWER,
+      }), { x: 0, y: 0 });
+    }
+
+    function hexPoints(center, radius) {
+      return Array.from({ length: 6 }, (_, index) => {
+        const angle = (-90 + index * 60) * Math.PI / 180;
+        return `${center.x + radius * Math.cos(angle)},${center.y + radius * Math.sin(angle)}`;
+      }).join(" ");
+    }
+
+    function formatPower(value) {
+      return Number(value.toFixed(2)).toString();
+    }
+
+    function describeAllocation(allocation) {
+      return AXES.map((axis) => `${AXIS_LABELS[axis]} ${formatPower(allocation[axis])}`).join(" · ");
+    }
+
+    function sameAllocation(left, right) {
+      return AXES.every((axis) => left[axis] === right[axis]);
+    }
+
+    function ranked(allocation) {
+      const axes = enabledAxes(allocation);
+      const frontier = paretoFront(variants, axes);
+      return { axes, frontier, ranking: rankVariants(frontier, allocation, axes, frontier) };
+    }
+
+    const hexes = document.querySelector("#hexes");
+    const labels = document.querySelector("#labels");
+    const radius = (triangle.smart.y - triangle.fast.y) / TOTAL_POWER / 1.5;
+    const cells = [];
+
+    for (let fast = TOTAL_POWER; fast >= 0; fast -= 1) {
+      for (let smart = 0; smart <= TOTAL_POWER - fast; smart += 1) {
+        const allocation = { smart, fast, cheap: TOTAL_POWER - fast - smart };
+        const winner = variantsById.get(ranked(allocation).ranking[0].id);
+        const center = allocationPoint(allocation);
+        const group = svgElement("g", {
+          class: "hex",
+          tabindex: "-1",
+          role: "button",
+          "aria-label": `${describeAllocation(allocation)}: ${winner.name}`,
+        });
+        const title = svgElement("title");
+        title.textContent = `${winner.name} — ${describeAllocation(allocation)}`;
+        group.append(title, svgElement("polygon", {
+          points: hexPoints(center, radius + 0.6),
+          fill: winner.color,
+          stroke: winner.color,
+        }));
+        hexes.append(group);
+        cells.push({ group, winner, allocation, center });
+      }
+    }
+
+    function cellAt(allocation) {
+      return cells.find((cell) => sameAllocation(cell.allocation, allocation));
+    }
+
+    function adjacent(left, right) {
+      return AXES.reduce(
+        (distance, axis) => distance + Math.abs(left.allocation[axis] - right.allocation[axis]),
+        0,
+      ) === 2;
+    }
+
+    function connectedRegions() {
+      const unseen = new Set(cells);
+      const regions = [];
+      while (unseen.size > 0) {
+        const seed = unseen.values().next().value;
+        unseen.delete(seed);
+        const region = [seed];
+        for (let index = 0; index < region.length; index += 1) {
+          const neighbors = [...unseen].filter((candidate) =>
+            candidate.winner === seed.winner && adjacent(region[index], candidate));
+          neighbors.forEach((neighbor) => unseen.delete(neighbor));
+          region.push(...neighbors);
+        }
+        regions.push(region);
+      }
+      return regions;
+    }
+
+    function regionLayout(region) {
+      const rawCenter = region.reduce((point, cell) => ({
+        x: point.x + cell.center.x / region.length,
+        y: point.y + cell.center.y / region.length,
+      }), { x: 0, y: 0 });
+      const boundaryFraction = region.filter((cell) =>
+        Object.values(cell.allocation).some((value) => value === 0)).length / region.length;
+      const inset = 0.04 + boundaryFraction * 0.14;
+      const center = {
+        x: rawCenter.x + (400 - rawCenter.x) * inset,
+        y: rawCenter.y + (447.33 - rawCenter.y) * inset,
+      };
+      const xx = region.reduce((sum, cell) => sum + (cell.center.x - rawCenter.x) ** 2, 0);
+      const yy = region.reduce((sum, cell) => sum + (cell.center.y - rawCenter.y) ** 2, 0);
+      const xy = region.reduce(
+        (sum, cell) => sum + (cell.center.x - rawCenter.x) * (cell.center.y - rawCenter.y),
+        0,
+      );
+      const trace = xx + yy;
+      const delta = Math.sqrt((xx - yy) ** 2 + 4 * xy ** 2);
+      const elongation = trace === delta ? Infinity : (trace + delta) / Math.max(1, trace - delta);
+      let angle = Math.atan2(2 * xy, xx - yy) * 90 / Math.PI;
+      if (angle > 90) angle -= 180;
+      if (angle < -90) angle += 180;
+      const allowedAngles = [-60, 0, 60];
+      const rotation = region.length >= 3 && elongation > 2.4
+        ? allowedAngles.reduce((best, candidate) =>
+          Math.abs(candidate - angle) < Math.abs(best - angle) ? candidate : best)
+        : 0;
+      return {
+        x: center.x,
+        y: center.y,
+        rotation,
+        fontSize: Math.min(25, 6 + Math.sqrt(region.length) * 4),
+      };
+    }
+
+    connectedRegions().forEach((region) => {
+      const { winner } = region[0];
+      const lines = compactLabel(winner.name);
+      const layout = regionLayout(region);
+      const text = svgElement("text", {
+        class: "hex-label",
+        x: layout.x,
+        y: layout.y - (lines.length - 1) * layout.fontSize * 0.38,
+        fill: winner.ink,
+        stroke: winner.ink === "#ffffff" ? "rgba(31,35,43,.12)" : "rgba(255,255,255,.13)",
+        style: `font-size:${layout.fontSize}px`,
+        transform: `rotate(${layout.rotation} ${layout.x} ${layout.y})`,
+      });
+      lines.forEach((line, index) => {
+        const span = svgElement("tspan", {
+          x: layout.x,
+          dy: index === 0 ? 0 : layout.fontSize * 0.82,
+          class: index === 0 ? "" : "qualifier",
+          style: index === 0 ? "" : `font-size:${layout.fontSize * 0.68}px`,
+        });
+        span.textContent = line;
+        text.append(span);
+      });
+      labels.append(text);
+    });
+
+    function readCustomPresets() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+        return Array.isArray(stored)
+          ? stored.filter((preset) => typeof preset?.name === "string" && isPowerAllocation(preset.allocation))
+          : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function writeCustomPresets() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(customPresets));
+      } catch {}
+    }
+
+    function parseHash() {
+      const params = new URLSearchParams(location.hash.slice(1));
+      const allocation = Object.fromEntries(AXES.map((axis) => {
+        const value = params.get(HASH_KEYS[axis]) ?? "";
+        return [axis, /^\d+(\.\d+)?$/.test(value) ? Number(value) : Number.NaN];
+      }));
+      return isPowerAllocation(allocation) ? allocation : { ...DEFAULT_PRESETS.overall };
+    }
+
+    let allocation = parseHash();
+    let customPresets = readCustomPresets();
+    let focusedCell = cellAt({ smart: 7, fast: 3, cheap: 2 }) ?? cells[0];
+    focusedCell.group.setAttribute("tabindex", "0");
+
+    function presets() {
+      return [
+        ...Object.entries(DEFAULT_PRESETS).map(([key, value]) => ({ name: PRESET_LABELS[key], allocation: value, builtIn: true })),
+        ...customPresets.map((preset) => ({ ...preset, builtIn: false })),
+      ];
+    }
+
+    const allocationRows = document.querySelector("#allocation");
+    const axisControls = {};
+    AXES.forEach((axis) => {
+      const row = htmlElement("div", { class: "axis-row" });
+      const value = htmlElement("span", { class: "value" });
+      const bar = htmlElement("div", { class: "power-bar", role: "presentation" });
+      const fill = htmlElement("span");
+      bar.append(fill);
+      const steppers = htmlElement("div", { class: "steppers" });
+      const minus = htmlElement("button", {
+        type: "button",
+        "aria-label": `Decrease ${AXIS_LABELS[axis]} by a quarter unit`,
+        "aria-describedby": "allocation-rule",
+        title: "Give ¼ unit to the largest other axis",
+      }, "−");
+      const plus = htmlElement("button", {
+        type: "button",
+        "aria-label": `Increase ${AXIS_LABELS[axis]} by a quarter unit`,
+        "aria-describedby": "allocation-rule",
+        title: "Take ¼ unit from the largest other axis",
+      }, "+");
+      minus.addEventListener("click", () => setAllocation(transferPower(allocation, axis, largestOther(axis))));
+      plus.addEventListener("click", () => setAllocation(transferPower(allocation, largestOther(axis), axis)));
+      steppers.append(minus, plus);
+      row.append(htmlElement("span", { class: "name" }, AXIS_LABELS[axis]), value, bar, steppers);
+      allocationRows.append(row);
+      axisControls[axis] = { value, fill, minus, plus };
+    });
+
+    function largestOther(axis) {
+      return AXES.filter((other) => other !== axis)
+        .reduce((best, other) => allocation[other] > allocation[best] ? other : best);
+    }
+
+    const presetDots = document.querySelector("#preset-dots");
+    const presetChips = document.querySelector("#preset-chips");
+
+    function renderPresets() {
+      presetDots.replaceChildren();
+      presetChips.replaceChildren();
+      presets().forEach((preset) => {
+        const point = allocationPoint(preset.allocation);
+        const dot = svgElement("g", { class: preset.builtIn ? "preset-dot" : "preset-dot custom" });
+        const label = svgElement("text", { x: point.x + 8, y: point.y - 7 });
+        label.textContent = preset.name;
+        dot.append(svgElement("circle", { cx: point.x, cy: point.y, r: 4.5 }), label);
+        presetDots.append(dot);
+
+        const group = htmlElement("span", { class: "chip-group" });
+        const chip = htmlElement("button", {
+          type: "button",
+          class: preset.builtIn ? "chip" : "chip has-remove",
+          title: describeAllocation(preset.allocation),
+        }, preset.name);
+        chip.dataset.allocation = JSON.stringify(preset.allocation);
+        chip.addEventListener("click", () => setAllocation({ ...preset.allocation }));
+        group.append(chip);
+        if (!preset.builtIn) {
+          const remove = htmlElement("button", {
+            type: "button",
+            class: "chip remove",
+            "aria-label": `Remove preset ${preset.name}`,
+            title: `Remove ${preset.name}`,
+          }, "×");
+          remove.addEventListener("click", () => {
+            customPresets = customPresets.filter((custom) => custom.name !== preset.name);
+            writeCustomPresets();
+            renderPresets();
+            renderChipState();
+          });
+          group.append(remove);
+        }
+        presetChips.append(group);
+      });
+    }
+
+    function renderChipState() {
+      presetChips.querySelectorAll(".chip:not(.remove)").forEach((chip) => {
+        chip.setAttribute("aria-pressed", String(sameAllocation(JSON.parse(chip.dataset.allocation), allocation)));
+      });
+    }
+
+    const saveForm = document.querySelector("#save-preset");
+    const presetName = document.querySelector("#preset-name");
+    presetName.addEventListener("input", () => presetName.setCustomValidity(""));
+    saveForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const name = presetName.value.trim();
+      const builtIn = Object.values(PRESET_LABELS).some((label) => label.toLowerCase() === name.toLowerCase());
+      presetName.setCustomValidity(name === "" ? "Enter a preset name." : builtIn ? `${name} is a built-in preset.` : "");
+      if (!presetName.reportValidity()) return;
+      customPresets = [...customPresets.filter((preset) => preset.name !== name), { name, allocation: { ...allocation } }];
+      writeCustomPresets();
+      presetName.value = "";
+      renderPresets();
+      renderChipState();
+    });
+
+    function metricQuality(range, value) {
+      if (range.min === range.max) return 1;
+      const normalized = (value - range.min) / (range.max - range.min);
+      return Math.max(0, Math.min(1, range.higherIsBetter ? normalized : 1 - normalized));
+    }
+
+    function metricRanges(rows) {
+      return Object.fromEntries(AXES.map((axis) => {
+        const values = rows.map((row) => row.metrics[axis]);
+        return [axis, { min: Math.min(...values), max: Math.max(...values), higherIsBetter: axis === "smart" }];
+      }));
+    }
+
+    function formatSmart(value) {
+      if (Number.isInteger(value)) return String(value);
+      return Math.abs(value) < 10 ? value.toFixed(3) : value.toFixed(1);
+    }
+
+    function formatTime(seconds, unit) {
+      const value = unit === "minutes" ? seconds / 60 : seconds;
+      const suffix = unit === "minutes" ? "m" : "s";
+      return `${value < 10 ? value.toFixed(1) : Math.round(value)}${suffix}`;
+    }
+
+    function formatCost(value) {
+      return `$${value.toFixed(3)}`;
+    }
+
+    function metricCell(range, value, text) {
+      const cell = htmlElement("td");
+      const wrapper = htmlElement("div", { class: "metric" });
+      const bar = htmlElement("span", { class: "microbar", "aria-hidden": "true" });
+      bar.append(htmlElement("span", { style: `width:${(metricQuality(range, value) * 100).toFixed(1)}%` }));
+      wrapper.append(htmlElement("span", { class: "value" }, text), bar);
+      cell.append(wrapper);
+      return cell;
+    }
+
+    const rowsBody = document.querySelector("#rows");
+    const tableCaption = document.querySelector("#table-caption");
+    const search = document.querySelector("#search");
+    const showDominated = document.querySelector("#show-dominated");
+    let flashTop = false;
+
+    function renderTable() {
+      const { axes, frontier, ranking } = ranked(allocation);
+      const rows = ranking.map((variant, index) => ({ variant, rank: index + 1 }));
+      if (showDominated.checked) {
+        const dominated = variants.filter((variant) => !frontier.includes(variant));
+        rankVariants(dominated, allocation, axes, frontier).forEach((variant) => {
+          rows.push({ variant, dominator: dominatorOf(variantsById.get(variant.id), variants, axes) });
+        });
+      }
+      const query = search.value.trim().toLowerCase();
+      const shown = rows.filter(({ variant }) => query === ""
+        || variant.name.toLowerCase().includes(query)
+        || variant.creator.toLowerCase().includes(query));
+      const ranges = metricRanges(shown.map(({ variant }) => variant));
+      const timeUnit = Math.max(0, ...shown.map(({ variant }) => variant.metrics.fast)) >= 60 ? "minutes" : "seconds";
+
+      tableCaption.textContent = `${describeAllocation(allocation)} — ${ranking.length} frontier ${ranking.length === 1 ? "model" : "models"}`
+        + (ranking[0] ? `, top: ${ranking[0].name}` : "")
+        + (query ? ` · ${shown.length} shown` : "");
+
+      rowsBody.replaceChildren(...shown.map(({ variant, rank, dominator }) => {
+        const row = htmlElement("tr", { class: dominator ? "dominated" : rank === 1 ? "top" : "" });
+        if (rank === 1 && flashTop) row.classList.add("flash");
+        const model = htmlElement("div", { class: "model" });
+        const swatch = htmlElement("span", { class: "swatch", style: `background:${variantsById.get(variant.id).color}` });
+        const names = htmlElement("span");
+        names.append(htmlElement("span", { class: "name" }, variant.name), " ", htmlElement("span", { class: "creator" }, variant.creator));
+        if (dominator) names.append(htmlElement("span", { class: "dominator" }, `dominated by ${dominator.name}`));
+        model.append(swatch, names);
+        const modelCell = htmlElement("td");
+        modelCell.append(model);
+        row.append(
+          htmlElement("td", { class: "rank" }, rank ? String(rank) : "—"),
+          modelCell,
+          metricCell(ranges.smart, variant.metrics.smart, formatSmart(variant.metrics.smart)),
+          metricCell(ranges.fast, variant.metrics.fast, formatTime(variant.metrics.fast, timeUnit)),
+          metricCell(ranges.cheap, variant.metrics.cheap, formatCost(variant.metrics.cheap)),
+          htmlElement("td", { class: "regret" }, variant.ranking.worstRegret.toFixed(3)),
+        );
+        return row;
+      }));
+      flashTop = false;
+    }
+
+    const marker = document.querySelector("#marker");
+
+    function render() {
+      AXES.forEach((axis) => {
+        const controls = axisControls[axis];
+        controls.value.textContent = formatPower(allocation[axis]);
+        controls.fill.style.width = `${allocation[axis] / TOTAL_POWER * 100}%`;
+        controls.minus.disabled = allocation[axis] < POWER_STEP;
+        controls.plus.disabled = allocation[largestOther(axis)] < POWER_STEP;
+      });
+      const point = allocationPoint(allocation);
+      marker.setAttribute("transform", `translate(${point.x} ${point.y})`);
+      cells.forEach((cell) => {
+        const active = sameAllocation(cell.allocation, allocation);
+        cell.group.classList.toggle("active", active);
+        cell.group.setAttribute("aria-pressed", String(active));
+      });
+      renderChipState();
+      renderTable();
+      const hash = `#${AXES.map((axis) => `${HASH_KEYS[axis]}=${formatPower(allocation[axis])}`).join("&")}`;
+      if (location.hash !== hash) history.replaceState(null, "", hash);
+    }
+
+    function setAllocation(next) {
+      allocation = next;
+      render();
+    }
+
+    function focusCell(cell) {
+      if (!cell) return;
+      focusedCell.group.setAttribute("tabindex", "-1");
+      focusedCell = cell;
+      cell.group.setAttribute("tabindex", "0");
+      cell.group.focus();
+    }
+
+    function neighbor(cell, key) {
+      const { smart, fast, cheap } = cell.allocation;
+      const moves = {
+        ArrowLeft: { smart: smart + 1, fast, cheap: cheap - 1 },
+        ArrowRight: { smart: smart - 1, fast, cheap: cheap + 1 },
+        ArrowUp: smart > cheap ? { smart: smart - 1, fast: fast + 1, cheap } : { smart, fast: fast + 1, cheap: cheap - 1 },
+        ArrowDown: smart < cheap ? { smart: smart + 1, fast: fast - 1, cheap } : { smart, fast: fast - 1, cheap: cheap + 1 },
+      };
+      return moves[key] && cellAt(moves[key]);
+    }
+
+    function chooseCell(cell) {
+      flashTop = true;
+      setAllocation({ ...cell.allocation });
+    }
+
+    cells.forEach((cell) => {
+      cell.group.addEventListener("click", () => {
+        focusCell(cell);
+        chooseCell(cell);
+      });
+      cell.group.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          chooseCell(cell);
+        } else if (event.key.startsWith("Arrow")) {
+          event.preventDefault();
+          focusCell(neighbor(cell, event.key));
+        }
+      });
+    });
+
+    search.addEventListener("input", renderTable);
+    showDominated.addEventListener("change", renderTable);
+    window.addEventListener("hashchange", () => setAllocation(parseHash()));
+
+    document.querySelector("#source-note").textContent = [
+      `${catalog.name} ${catalog.version}`,
+      `generated ${catalog.generatedAt.slice(0, 10)}`,
+      catalog.attribution,
+    ].filter(Boolean).join(" · ");
+
+    renderPresets();
+    render();
+  </script>
+</body>
+</html>

@@ -1,8 +1,6 @@
 # pi-pareto-model
 
-<img width="1245" height="699" alt="Screenshot 2026-09-03 at 7 32 42" src="https://github.com/user-attachments/assets/2f333581-d12b-40b0-9609-852b03b7b971" />
-
-This is a model picker for Pi that allows you to quickly pick models along a 3-axis Pareto efficiency frontier.
+This project builds one self-contained HTML page for choosing a model along a 3-axis Pareto efficiency frontier.
 
 It compares each model variant (model and thinking level combo) with three measures:
 
@@ -10,62 +8,83 @@ It compares each model variant (model and thinking level combo) with three measu
 - **Time:** Lower values are better.
 - **Cost:** Lower values are better.
 
-The model picker is aware of what providers you're currently logged in-to and will hide models you are unable to use. 
+The page shows a triangle of power allocations. Each hexagon is colored by the model that ranks first for that allocation. Below the triangle, you can tune the allocation, jump to presets, and read the full ranked frontier.
 
-The model picker hides any model which is pareto-dominated by another (e.g., you should never use model X because model Y is the cost/intelligence but cheaper).
-
-You can shift your preferences between those three criteria dynamically, or cycle through our overall/fast/smart/cheap presets. You can also provide your own presets.
-
-The picker is **subscription aware** and will prefer "free" subscribed models when you say they are available.
+The page hides any model which is Pareto-dominated by another (e.g., you should never use model X because model Y is as smart and as fast but cheaper). It computes the frontier and the ranking in the browser from an embedded copy of the catalog. It makes no network requests and needs no server.
 
 Data is provided by DeepSWE, though you can substitute in your own source.
 
 ## Contents
 
-- [Installation](#installation)
+- [Build the page](#build-the-page)
 - [Catalog configuration](#catalog-configuration)
-- [Usage](#usage)
-- [Power Allocation](#power-allocation)
+- [Using the page](#using-the-page)
 - [Ranking](#ranking)
-- [Catalogs and Provider Routes](#catalogs-and-provider-routes)
 - [Catalog requirements](#catalog-requirements)
 - [Development](#development)
-- [Contributing](#contributing)
 - [License](#license)
 
-## Installation
+## Build the page
 
-Install the extension from this source directory:
-
-```fish
-pi install /absolute/path/to/pi-pareto-model
-```
-
-Use this command for a temporary test:
+[DeepSWE Catalog Digest](https://github.com/speedshop/ds-catalog-digest) publishes a compatible, redistributable catalog. Download it and build the page:
 
 ```fish
-pi -e /absolute/path/to/pi-pareto-model
+npm install
+curl -sSLo /tmp/ds-catalog.json https://raw.githubusercontent.com/speedshop/ds-catalog-digest/main/catalog/model-selection-catalog.json
+npm run build:preset-map -- --catalog /tmp/ds-catalog.json
+open preset-map.html
 ```
+
+Without `--catalog`, the build reads the catalog source from a configuration file. See [Catalog configuration](#catalog-configuration).
+
+The build:
+
+1. Loads the catalog from `--catalog`, or from the configured file, GitHub, or HTTP source.
+2. Validates the catalog against the schema for its `schemaVersion`.
+3. Checks that the catalog allows redistribution.
+4. Embeds each variant's id, display name, creator, release date when present, and metrics.
+5. Inlines the ranking module from `src/ranking.js`.
+6. Writes `preset-map.html` and prints its path, variant count, and catalog name.
+
+### Options
+
+| Option | Purpose |
+|---|---|
+| `--catalog PATH` | Read a catalog file directly |
+| `--config PATH` | Read the catalog source from this configuration file |
+| `--output PATH` | Write the HTML here (default: `preset-map.html`) |
+| `--template PATH` | Use a different HTML template |
+| `--allow-restricted` | Build from a catalog that does not allow redistribution |
+| `--help` | Show the options |
+
+### Redistribution
+
+The built page contains the catalog's metrics. Ship only a page built from a catalog whose `catalog.distribution.allowRedistribution` is `true`.
+
+The build refuses a catalog whose `allowRedistribution` is `false`. It prints the catalog's attribution and terms URL instead. Pass `--allow-restricted` to build a private copy anyway, and do not publish that page.
+
+Git ignores every `preset-map*.html` file except the template.
 
 ## Catalog configuration
 
-Create `~/.pi/agent/pareto-model-picker.json`.
+Without `--catalog`, the build uses the first configuration file it finds:
+
+1. The `--config PATH` argument
+2. `.pi/pareto-model-picker.json` in this repository
+3. `~/.pi/agent/pareto-model-picker.json`
+
+The file names one catalog source.
 
 ### Use the public DeepSWE catalog
-
-[DeepSWE Catalog Digest](https://github.com/speedshop/ds-catalog-digest) publishes a compatible catalog. Configure its stable catalog as a public HTTP source:
 
 ```json
 {
   "source": {
     "type": "http",
     "url": "https://raw.githubusercontent.com/speedshop/ds-catalog-digest/main/catalog/model-selection-catalog.json"
-  },
-  "cacheTtlHours": 24
+  }
 }
 ```
-
-The picker caches it for 24 hours and loads it once per Pi session. Start a new Pi session to pick up a newer catalog after the cache expires.
 
 ### Use a local file
 
@@ -77,6 +96,8 @@ The picker caches it for 24 hours and loads it once per Pi session. Start a new 
   }
 }
 ```
+
+A relative catalog path starts from the directory that contains the configuration file.
 
 The repository includes a test catalog at `test/fixtures/model-selection-catalog.json`. Its benchmark values are fabricated.
 
@@ -92,14 +113,12 @@ The repository includes a test catalog at `test/fixtures/model-selection-catalog
 }
 ```
 
-The picker runs `gh api` with the active GitHub CLI account. Authenticate that account before starting Pi:
+The build runs `gh api` with the active GitHub CLI account. Authenticate that account first:
 
 ```fish
 gh auth login
 gh auth status
 ```
-
-The catalog is loaded once per Pi session. Start a new session to load upstream changes.
 
 ### Use a private HTTP URL
 
@@ -112,206 +131,80 @@ The catalog is loaded once per Pi session. Start a new session to load upstream 
       "Authorization": "Bearer $PI_PARETO_GITHUB_TOKEN",
       "Accept": "application/vnd.github.raw+json"
     }
-  },
-  "cacheTtlHours": 24
+  }
 }
 ```
 
 Set `PI_PARETO_GITHUB_TOKEN` to a fine-grained GitHub personal access token. Give the token read-only access to repository contents.
 
-Do not put the token value in the configuration file.
+Do not put the token value in the configuration file. The URL and header values expand `$NAME` and `${NAME}` from the environment. Write `$$` for a literal `$`.
 
-A trusted project can use `.pi/pareto-model-picker.json` instead. This project file overrides the global file.
+## Using the page
 
-A relative catalog path starts from the directory that contains the configuration file.
+### Triangle
 
-### Configure Presets
+Each corner puts all 12 power units on one measure: Smart at the bottom left, Time at the top, and Cost at the bottom right.
 
-Add a `presets` object to define the complete Preset list. The picker shows Presets in the same order as this object.
+Each hexagon is one whole-unit Power Allocation, so every edge runs from 0 to 12 units. A hexagon's color names the top-ranked frontier model for its allocation. Colors follow the model family, and higher thinking effort uses a darker shade. Adjacent hexagons with the same winner form a labelled region.
 
-```json
-{
-  "source": {
-    "type": "file",
-    "path": "/absolute/path/to/model-selection-catalog.json"
-  },
-  "presets": {
-    "overall": {
-      "smart": 6.25,
-      "time": 4.25,
-      "cost": 1.5
-    },
-    "oracle": {
-      "smart": 12,
-      "time": 0,
-      "cost": 0
-    },
-    "cheap": {
-      "smart": 3,
-      "time": 1.5,
-      "cost": 7.5,
-      "subscriptionRoutes": "only",
-      "paretoCost": "reference"
-    }
-  }
-}
-```
+Click a hexagon to choose its allocation. The ring marks the current allocation, which can sit between hexagons at quarter-unit positions.
 
-If you omit `presets`, the picker uses its built-in Presets. If you add `presets`, your list replaces all built-in Presets.
+To use the keyboard, tab to the triangle, move between hexagons with the arrow keys, and press Enter or Space to choose one.
 
-Each Preset name must start with a letter. The remaining characters can use letters, numbers, `_`, or `-`. Each allocation must total 12.
+### Power Allocation
 
-The optional `subscriptionRoutes` value controls route eligibility:
+The strip below the triangle shows the Smart, Time, and Cost units with a bar for each. The three values always total 12.
 
-- `compete`: Let Included and metered routes compete. This is the default.
-- `only`: Exclude metered routes when an Included route exists.
-
-The optional `paretoCost` value controls the Cost value for Pareto domination:
-
-- `effective`: Use zero Cost for an Included route. This is the default.
-- `reference`: Always use Reference Task Cost.
-
-## Usage
-
-Run this Pi command:
-
-```text
-/pareto
-```
-
-The picker fills the available terminal height. Use Up or Down to move through all choices.
-
-| Key | Action |
-|---|---|
-| Up/Down | Move the selection |
-| Tab / Shift+Tab | Change the Preset |
-| Home/End | Move to the first or last choice |
-| `s` / `t` / `c` | Choose a Power Allocation target or donate to the active target |
-| `r` | Reset the current Preset |
-| `p` | Save the current Power Allocation as the Preset default |
-| `d` | Show or hide dominated Model Variants |
-| `/` | Start a search |
-| `a` | Select the Available Catalog or Full Catalog |
-| `u` | Enable or disable subscriptions for this Pi session |
-| Enter | Select an available Model Variant |
-| Escape | Clear the search, leave donor mode, or close the picker |
-
-The search updates after each character. It searches these fields:
-
-- Model name
-- Creator
-- Checkpoint
-- Provider
-- Exact Pi model ID
-
-The picker hides dominated Model Variants by default. Press `d` to show them after the Pareto frontier.
-
-The Full Catalog also shows unavailable Model Variants. You can move to an unavailable row, but you cannot select it.
-
-### Use a shortcut command
-
-Pass a Preset name to select its first available choice without opening the picker:
-
-```text
-/pareto PRESET
-```
-
-For example:
-
-```text
-/pareto oracle
-```
-
-The built-in Presets also have short compatibility commands:
-
-```text
-/pareto-overall
-/pareto-fast
-/pareto-smart
-/pareto-cheap
-```
-
-The command uses the current Power Allocation, authentication data, and subscription settings. A compatibility command reports an unknown Preset if the active configuration removed that built-in name.
-
-## Power Allocation
-
-Each Preset has 12 power units. The picker distributes these units across Smart, Time, and Cost.
-
-Press `s`, `t`, or `c` to choose the measure that will receive power. The picker then enters donor mode. Press either other measure to transfer one quarter-power from that donor to the target. You can use different donors for consecutive transfers.
-
-Press the target key again, or press Escape, to leave donor mode. Four transfers move one complete power unit.
-
-An asterisk in `power*:` means that the current allocation is not the configured default.
-
-Press `r` to restore the configured default. Press `p` to save the current allocation as the new default.
-
-The save operation changes only the current Preset. It writes the change to the active `pareto-model-picker.json` file.
-
-The picker also stores Power Allocations in the Pi session. Session values override configured defaults until you reset them.
+- **+** takes one quarter unit from the largest other measure.
+- **−** gives one quarter unit to the largest other measure.
 
 A measure with zero power does not affect Pareto domination or ranking. Its column stays visible.
 
-### Built-in Presets
+### Presets
 
-The picker uses these Presets only when the configuration has no `presets` object. The values use Smart/Time/Cost order:
+The page has these built-in Presets. The values use Smart/Time/Cost order:
 
 | Preset | Allocation | Purpose |
 |---|---:|---|
-| Overall | `6.25/4.25/1.5` | Balance Smart and Time with the most power on Smart |
+| Overall | `7.25/3.25/1.5` | Balance Smart and Time with the most power on Smart |
 | Fast | `5/5.25/1.75` | Balance Smart and Time with a slight Time preference |
 | Smart | `8/2.25/1.75` | Give strong priority to Smart |
 | Cheap | `1.25/1/9.75` | Give the most power to Cost |
 
-You can replace these names and allocations with any configured Presets. For example, an `oracle` Preset can use `12/0/0`.
+Click a Preset chip to jump to its allocation. Each Preset also appears as a labelled dot on the triangle.
 
-Each allocation must use nonnegative multiples of `0.25`. The three values must total 12.
+Enter a name and click **Save as preset** to keep the current allocation. The browser stores saved Presets in `localStorage`, so they stay on that browser only. Click **×** on a saved Preset to remove it.
 
-### Subscription behavior
+### URL hash
 
-A subscription changes Pareto domination. It does not change the preference order of the surviving Model Variants.
+The URL hash holds the current allocation, for example `#s=7.25&t=3.25&c=1.5`. Share or bookmark the URL to return to that allocation.
 
-The picker uses two cost values:
+The page uses Overall when the hash is missing, is malformed, uses steps other than quarter units, or does not total 12.
 
-- **Reference Task Cost:** The catalog cost for a benchmark task.
-- **Effective Cost:** Zero for an enabled Subscription Route. Otherwise, it equals Reference Task Cost.
+### Ranked table
 
-A Preset with `paretoCost: "effective"` uses Effective Cost for Pareto domination. Thus, an Included Model Variant can dominate a similar metered Model Variant.
+The table lists the frontier for the current allocation in rank order. The top row is the selected model. When you click a hexagon, the page highlights its winner in the top row.
 
-The picker uses Reference Task Cost to rank the Model Variants that survive. Thus, a subscription does not change the preferred order of reasoning levels.
+Each Smart, Time, and Cost cell has a bar. A longer bar is better, scaled between the shown rows' minimum and maximum. Time uses seconds when every shown value is under 60 seconds, and minutes otherwise.
 
-A Preset with `subscriptionRoutes: "only"` excludes all metered routes when an Included route exists. With `paretoCost: "reference"`, it uses Reference Task Cost as a proxy for subscription usage.
+**Show dominated** adds the dominated variants after the frontier in grey. Each one names a model that dominates it.
 
-For example, a Preset can remove a similar metered model from its frontier. It does not make a high reasoning level more efficient than a medium level.
+The search box filters rows by model name or creator as you type.
 
-The Cost column keeps the Reference Task Cost visible and adds `·incl` for an enabled Subscription Route. Press `u` to disable that route for the current Pi session.
+## Ranking
 
-### Subscription policy
+The page uses the Full Catalog and Reference Task Cost.
 
-The built-in policy recognizes these OAuth subscriptions:
+1. **Pareto frontier.** For the measures that have power, the page removes every variant that another variant dominates. A variant dominates another when it is no worse on every powered measure and strictly better on at least one.
+2. **Regret.** For each powered measure, a frontier variant's regret is its gap from the best frontier value. The page divides that gap by the interquartile range of the frontier's distinct values for that measure. Smart and Cost use linear gaps. Time uses logarithmic gaps, so halving time counts the same at any speed.
+3. **Weighting.** Each regret is multiplied by that measure's power and divided by the total power on powered measures.
+4. **Minimax order.** Variants rank by their worst weighted regret, lowest first. Ties break by mean weighted regret and then by name.
 
-- OpenAI Codex
-- GitHub Copilot
-- xAI
-
-It also recognizes these plan providers:
-
-- Kimi Coding
-- Z.AI Coding Plan
-- OpenCode Go
-- Qwen Token Plan
-- Xiaomi MiMo Token Plan
-
-The policy does not treat Anthropic OAuth as included usage. Pi can bill Claude Pro or Max use as extra usage.
-
-The policy also excludes OpenRouter, Radius, MiniMax, and other ambiguous or metered providers.
-
-## Catalogs and Provider Routes
-
-A catalog describes Model Variants and their benchmark metrics. Its aliases map each variant to zero or more Pi Provider Routes; an alias may include a Pi thinking level, and multiple aliases may identify equivalent routes. Route pricing and availability still come from Pi rather than the catalog.
+Thus, a variant ranks first when it is never far behind on any measure you care about.
 
 ## Catalog requirements
 
-[`schema/model-selection-catalog.schema.json`](schema/model-selection-catalog.schema.json) is the source-neutral, canonical catalog-v1 contract. Catalogs must use the numeric `"schemaVersion": 1`; semver strings and unknown numeric versions are rejected.
+[`schema/model-selection-catalog.schema.json`](schema/model-selection-catalog.schema.json) is the source-neutral, canonical catalog-v1 contract. Catalogs must use a numeric `schemaVersion`; semver strings and unknown numeric versions are rejected.
 
 Every variant supplies Smart, Fast, and Cheap values plus an origin for each value. Smart is always measured directly by its source benchmark:
 
@@ -337,7 +230,9 @@ Fast and Cheap may instead be adjusted onto a common benchmark version. The only
 
 Smart accepts any finite JSON number. Fast must be greater than zero because ranking uses a logarithmic scale, while Cheap may be zero. Catalog and variant `provenance` objects remain open so producers can record source-specific evidence without changing this source-neutral contract. See the schema for the complete required metadata and alias fields.
 
-Producer repositories that vendor the schema should copy this file unchanged and gate the copy byte-for-byte in local CI. When this package is installed as a development dependency, a durable offline check is:
+`"schemaVersion": 2` is the metric-only contract, validated by [`schema/model-metrics-catalog.schema.json`](schema/model-metrics-catalog.schema.json). It removes `aliases`, requires `metricOrigins`, and keeps `distribution` unchanged. The fields the page uses keep their names in both versions: `id`, `displayName`, `creator`, `metrics`, `provenance.releaseDate`, and `catalog.name`, `version`, `generatedAt`, and `distribution`.
+
+Producer repositories that vendor a schema should copy the file unchanged and gate the copy byte-for-byte in local CI. When this package is installed as a development dependency, a durable offline check is:
 
 ```sh
 cmp --silent schema/model-selection-catalog.schema.json \
@@ -355,11 +250,9 @@ npm install
 npm run check
 ```
 
-## Contributing
+The page template is `visualization/preset-map.template.html`. The ranking module is `src/ranking.js`, plain JavaScript with no imports. The build inlines it into the page, and the tests import it directly.
 
 Keep each change focused. Add or update tests when behavior changes.
-
-Run `npm run check` before you submit a change.
 
 ## License
 

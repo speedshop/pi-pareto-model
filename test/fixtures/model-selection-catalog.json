@@ -94,7 +94,7 @@
           "equivalence": "verified"
         }
       ],
-      "provenance": { "fixtureScenario": "current subscription model" }
+      "provenance": { "fixtureScenario": "balanced frontier model" }
     },
     {
       "id": "fixture:model:gpt-5-5-high",
@@ -284,7 +284,7 @@
           "equivalence": "verified"
         }
       ],
-      "provenance": { "fixtureScenario": "fast subscription model" }
+      "provenance": { "fixtureScenario": "fast frontier model" }
     },
     {
       "id": "fixture:model:gpt-5-6-luna-medium",
@@ -307,7 +307,7 @@
           "equivalence": "verified"
         }
       ],
-      "provenance": { "fixtureScenario": "selectable Luna subscription route" }
+      "provenance": { "fixtureScenario": "Luna frontier model" }
     },
     {
       "id": "fixture:model:glm-5-2-fast-high",
