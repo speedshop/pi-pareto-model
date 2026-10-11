@@ -67,11 +67,10 @@ Git ignores every `preset-map*.html` file except the template.
 
 ## Catalog configuration
 
-Without `--catalog`, the build uses the first configuration file it finds:
+Without `--catalog`, the build reads a configuration file. `--config PATH` is an exclusive override: the build reads only that file and fails if it is missing. Only when `--config` is omitted does the build look for the first file that exists:
 
-1. The `--config PATH` argument
-2. `.pi/pareto-model-picker.json` in this repository
-3. `~/.pi/agent/pareto-model-picker.json`
+1. `.pi/pareto-model-picker.json` in this repository
+2. `~/.pi/agent/pareto-model-picker.json`
 
 The file names one catalog source.
 
@@ -145,7 +144,7 @@ Do not put the token value in the configuration file. The URL and header values 
 
 Each corner puts all 12 power units on one measure: Smart at the bottom left, Time at the top, and Cost at the bottom right.
 
-Each hexagon is one whole-unit Power Allocation, so every edge runs from 0 to 12 units. A hexagon's color names the top-ranked frontier model for its allocation. Colors follow the model family, and higher thinking effort uses a darker shade. Adjacent hexagons with the same winner form a labelled region.
+Each hexagon is one whole-unit Power Allocation. Each edge runs 12 whole-unit steps from one pure pole to the next, giving 13 hexagons per edge and 91 in total. A hexagon's color names the top-ranked frontier model for its allocation. Colors follow the model family, and higher thinking effort uses a darker shade. Adjacent hexagons with the same winner form a labelled region.
 
 Click a hexagon to choose its allocation. The ring marks the current allocation, which can sit between hexagons at quarter-unit positions.
 
@@ -183,9 +182,9 @@ The page uses Overall when the hash is missing, is malformed, uses steps other t
 
 ### Ranked table
 
-The table lists the frontier for the current allocation in rank order. The top row is the selected model. When you click a hexagon, the page highlights its winner in the top row.
+The table lists the frontier for the current allocation in rank order. The top row is the selected model. When you click a hexagon, the page clears the search box and highlights its winner in the top row. While a search is active, the filter can hide the rank 1 row.
 
-Each Smart, Time, and Cost cell has a bar. A longer bar is better, scaled between the shown rows' minimum and maximum. Time uses seconds when every shown value is under 60 seconds, and minutes otherwise.
+Each Smart, Time, and Cost cell has a bar. A longer bar is better, scaled between the shown rows' minimum and maximum. Each Time value uses seconds below 60 seconds and minutes at or above.
 
 **Show dominated** adds the dominated variants after the frontier in grey. Each one names a model that dominates it.
 

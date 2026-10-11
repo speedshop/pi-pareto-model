@@ -97,7 +97,7 @@
       line-height: 1;
       text-anchor: middle;
       paint-order: stroke;
-      stroke-width: 2.5px;
+      stroke-width: 8px;
       stroke-linejoin: round;
     }
 
@@ -139,8 +139,8 @@
       letter-spacing: 0.02em;
       text-transform: uppercase;
       paint-order: stroke;
-      stroke: rgba(245, 243, 238, 0.85);
-      stroke-width: 3px;
+      stroke: var(--paper);
+      stroke-width: 5px;
       stroke-linejoin: round;
     }
 
@@ -438,7 +438,7 @@
   <main>
     <header>
       <h1>The Pareto frontier, power by power.</h1>
-      <p>Each hexagon is one whole-unit Power Allocation of 12. Its color names the top-ranked frontier model.</p>
+      <p>Each edge runs 12 whole-unit steps from one pure pole to the next: 13 hexagons per edge, 91 in all. Each hexagon's color names the top-ranked frontier model for its allocation.</p>
     </header>
 
     <svg class="map" viewBox="0 0 800 700" role="group" aria-labelledby="map-title map-description">
@@ -559,7 +559,6 @@ __RANKING_MODULE__
       "#007db8",
     ];
     function modelColors(name) {
-      // Strip thinking qualifiers only; release dates and other identifiers stay distinct.
       let effort;
       const family = name.replace(/\s*\(([^)]*)\)/g, (match, qualifier) => {
         const level = qualifier.match(/\b(low|medium|high|xhigh|max) effort\b/i)
@@ -568,7 +567,6 @@ __RANKING_MODULE__
         effort = level[1].toLowerCase();
         return "";
       }).trim().toLowerCase();
-      // Hash the family so its color stays the same across maps and catalog updates.
       const hash = Array.from(family).reduce((value, character) =>
         (Math.imul(value, 31) + character.charCodeAt(0)) >>> 0, 0);
       const base = palette[hash % palette.length];
@@ -757,7 +755,7 @@ __RANKING_MODULE__
         x: layout.x,
         y: layout.y - (lines.length - 1) * layout.fontSize * 0.38,
         fill: winner.ink,
-        stroke: winner.ink === "#ffffff" ? "rgba(31,35,43,.12)" : "rgba(255,255,255,.13)",
+        stroke: winner.color,
         style: `font-size:${layout.fontSize}px`,
         transform: `rotate(${layout.rotation} ${layout.x} ${layout.y})`,
       });
@@ -928,9 +926,9 @@ __RANKING_MODULE__
       return Math.abs(value) < 10 ? value.toFixed(3) : value.toFixed(1);
     }
 
-    function formatTime(seconds, unit) {
-      const value = unit === "minutes" ? seconds / 60 : seconds;
-      const suffix = unit === "minutes" ? "m" : "s";
+    function formatTime(seconds) {
+      const value = seconds >= 60 ? seconds / 60 : seconds;
+      const suffix = seconds >= 60 ? "m" : "s";
       return `${value < 10 ? value.toFixed(1) : Math.round(value)}${suffix}`;
     }
 
@@ -968,7 +966,6 @@ __RANKING_MODULE__
         || variant.name.toLowerCase().includes(query)
         || variant.creator.toLowerCase().includes(query));
       const ranges = metricRanges(shown.map(({ variant }) => variant));
-      const timeUnit = Math.max(0, ...shown.map(({ variant }) => variant.metrics.fast)) >= 60 ? "minutes" : "seconds";
 
       tableCaption.textContent = `${describeAllocation(allocation)} — ${ranking.length} frontier ${ranking.length === 1 ? "model" : "models"}`
         + (ranking[0] ? `, top: ${ranking[0].name}` : "")
@@ -989,7 +986,7 @@ __RANKING_MODULE__
           htmlElement("td", { class: "rank" }, rank ? String(rank) : "—"),
           modelCell,
           metricCell(ranges.smart, variant.metrics.smart, formatSmart(variant.metrics.smart)),
-          metricCell(ranges.fast, variant.metrics.fast, formatTime(variant.metrics.fast, timeUnit)),
+          metricCell(ranges.fast, variant.metrics.fast, formatTime(variant.metrics.fast)),
           metricCell(ranges.cheap, variant.metrics.cheap, formatCost(variant.metrics.cheap)),
           htmlElement("td", { class: "regret" }, variant.ranking.worstRegret.toFixed(3)),
         );
@@ -1046,6 +1043,7 @@ __RANKING_MODULE__
     }
 
     function chooseCell(cell) {
+      search.value = "";
       flashTop = true;
       setAllocation({ ...cell.allocation });
     }
