@@ -146,16 +146,17 @@ Each corner puts all 12 power units on one measure: Smart at the bottom left, Ti
 
 Each hexagon is one whole-unit Power Allocation. Each edge runs 12 whole-unit steps from one pure pole to the next, giving 13 hexagons per edge and 91 in total. A hexagon's color names the top-ranked frontier model for its allocation. Colors follow the model family, and higher thinking effort uses a darker shade. Adjacent hexagons with the same winner form a region. The page labels regions largest first, each on an opaque backing in the region's color. A label must not overlap a larger region's label, a built-in Preset dot, or a corner pill. When it does not fit at the region's center, the page tries the region's hexagons nearest the center, then a smaller size, then an unrotated label. It skips a label only when nothing fits, and it skips single-hexagon regions. Hover over or focus any hexagon to name its winner.
 
-Click a hexagon to choose its allocation. The ring marks the current allocation, which can sit between hexagons at quarter-unit positions.
+Click or tap a hexagon to choose its allocation. Keep the pointer pressed and drag across the triangle to set the allocation continuously: the page snaps each measure to quarter units totalling 12 and updates the table as you move. Dragging past an edge clamps to the triangle. The URL hash updates once, when you release. The ring marks the current allocation, which can sit between hexagons at quarter-unit positions.
 
 To use the keyboard, tab to the triangle, move between hexagons with the arrow keys, and press Enter or Space to choose one.
 
 ### Power Allocation
 
-The strip below the triangle shows the Smart, Time, and Cost units with a bar for each. The three values always total 12.
+The strip below the triangle shows the Smart, Time, and Cost units with a slider for each. The three values always total 12.
 
 - **+** takes one quarter unit from the largest other measure.
 - **−** gives one quarter unit to the largest other measure.
+- Moving a slider repeats the same rule in quarter units until the measure reaches the slider's value.
 
 A measure with zero power does not affect Pareto domination or ranking. Its column stays visible.
 
@@ -172,7 +173,7 @@ The page has these built-in Presets. The values use Smart/Time/Cost order:
 
 Click a Preset chip to jump to its allocation. Each Preset also appears as a dot on the triangle. Hover over a dot to see its name, or click it to jump to its allocation.
 
-Enter a name and click **Save as preset** to keep the current allocation. The browser stores saved Presets in `localStorage`, so they stay on that browser only. Click **×** on a saved Preset to remove it.
+Click **Save preset**, enter a name, and press Enter or click **Save** to keep the current allocation. Press Escape or click **Cancel** to close the name field without saving. Built-in Preset names are rejected. The browser stores saved Presets in `localStorage`, so they stay on that browser only. Click **×** on a saved Preset to remove it.
 
 ### URL hash
 
@@ -189,6 +190,14 @@ Each Smart, Time, and Cost cell has a bar. A longer bar is better, scaled betwee
 **Show dominated** adds the dominated variants after the frontier in grey. Each one names a model that dominates it.
 
 The search box filters rows by model name or creator as you type.
+
+### Small screens
+
+At 600px wide or narrower:
+
+- The triangle spans the full width. A key below it lists each region label in the same order, with the model's color, in place of the labels on the triangle.
+- A bar fixed to the bottom of the screen shows the current allocation and the top-ranked model's name, creator, and Smart, Time, and Cost values.
+- Each table row becomes a two-line card: rank, color, model, and creator, then Smart, Time, and Cost with their bars. The worst-regret column is hidden.
 
 ## Ranking
 
