@@ -412,8 +412,6 @@
     }
 
     @media (max-width: 650px) {
-      .hex-label { font-size: 11px; }
-      .hex-label .qualifier { font-size: 8px; }
       .save { margin-left: 0; }
       .metric { grid-template-columns: 2.4rem 3.2rem; }
     }
@@ -752,55 +750,78 @@ __RANKING_MODULE__
       return left.left < right.right && right.left < left.right && left.top < right.bottom && right.top < left.bottom;
     }
 
-    const placedLabels = Object.values(DEFAULT_PRESETS).map((preset) => {
-      const point = allocationPoint(preset);
-      return { left: point.x - 6, right: point.x + 6, top: point.y - 6, bottom: point.y + 6 };
-    });
+    const placedLabels = [
+      ...Object.values(DEFAULT_PRESETS).map((preset) => {
+        const point = allocationPoint(preset);
+        return { left: point.x - 6, right: point.x + 6, top: point.y - 6, bottom: point.y + 6 };
+      }),
+      ...[...document.querySelectorAll(".pole")].map((pole) => {
+        const { e, f } = pole.transform.baseVal.consolidate().matrix;
+        const box = pole.getBBox();
+        return { left: e + box.x, right: e + box.x + box.width, top: f + box.y, bottom: f + box.y + box.height };
+      }),
+    ];
+
+    function measuredLabel(winner, lines, layout) {
+      const label = svgElement("g", {
+        class: "hex-label",
+        fill: winner.ink,
+        style: `font-size:${layout.fontSize}px`,
+        transform: `rotate(${layout.rotation} ${layout.x} ${layout.y})`,
+      });
+      const text = svgElement("text", {
+        x: layout.x,
+        y: layout.y - (lines.length - 1) * layout.fontSize * 0.38,
+      });
+      lines.forEach((line, index) => {
+        const span = svgElement("tspan", {
+          x: layout.x,
+          dy: index === 0 ? 0 : layout.fontSize * 0.82,
+          class: index === 0 ? "" : "qualifier",
+          style: index === 0 ? "" : `font-size:${layout.fontSize * 0.68}px`,
+        });
+        span.textContent = line;
+        text.append(span);
+      });
+      label.append(text);
+      labels.append(label);
+      const padding = 4;
+      const measured = text.getBBox();
+      const box = {
+        x: measured.x - padding,
+        y: measured.y - padding,
+        width: measured.width + padding * 2,
+        height: measured.height + padding * 2,
+      };
+      return { label, box, bounds: rotatedBounds(box, layout) };
+    }
+
+    function placeLabel(region) {
+      const { winner } = region[0];
+      const lines = compactLabel(winner.name);
+      const layout = regionLayout(region);
+      const distance = (point) => Math.hypot(point.x - layout.x, point.y - layout.y);
+      const points = [layout, ...region.map((cell) => cell.center).sort((left, right) => distance(left) - distance(right))];
+      for (const rotation of new Set([layout.rotation, 0])) {
+        for (const fontSize of [layout.fontSize, Math.max(9, layout.fontSize * 0.8)]) {
+          for (const point of points) {
+            const { label, box, bounds } = measuredLabel(winner, lines, { ...layout, rotation, x: point.x, y: point.y, fontSize });
+            if (placedLabels.some((placed) => intersects(placed, bounds))) {
+              label.remove();
+              continue;
+            }
+            placedLabels.push(bounds);
+            label.prepend(svgElement("rect", { ...box, rx: 4, fill: winner.color }));
+            return;
+          }
+        }
+      }
+    }
+
     connectedRegions()
       .filter((region) => region.length > 1)
       .sort((left, right) => right.length - left.length)
-      .forEach((region) => {
-        const { winner } = region[0];
-        const lines = compactLabel(winner.name);
-        const layout = regionLayout(region);
-        const label = svgElement("g", {
-          class: "hex-label",
-          fill: winner.ink,
-          style: `font-size:${layout.fontSize}px`,
-          transform: `rotate(${layout.rotation} ${layout.x} ${layout.y})`,
-        });
-        const text = svgElement("text", {
-          x: layout.x,
-          y: layout.y - (lines.length - 1) * layout.fontSize * 0.38,
-        });
-        lines.forEach((line, index) => {
-          const span = svgElement("tspan", {
-            x: layout.x,
-            dy: index === 0 ? 0 : layout.fontSize * 0.82,
-            class: index === 0 ? "" : "qualifier",
-            style: index === 0 ? "" : `font-size:${layout.fontSize * 0.68}px`,
-          });
-          span.textContent = line;
-          text.append(span);
-        });
-        label.append(text);
-        labels.append(label);
-        const padding = 4;
-        const measured = text.getBBox();
-        const box = {
-          x: measured.x - padding,
-          y: measured.y - padding,
-          width: measured.width + padding * 2,
-          height: measured.height + padding * 2,
-        };
-        const bounds = rotatedBounds(box, layout);
-        if (placedLabels.some((placed) => intersects(placed, bounds))) {
-          label.remove();
-          return;
-        }
-        placedLabels.push(bounds);
-        label.prepend(svgElement("rect", { ...box, rx: 4, fill: winner.color }));
-      });
+      .forEach(placeLabel);
 
     function readCustomPresets() {
       try {
