@@ -64,7 +64,7 @@
   "whyLimitingTied": "Tied limiting trade-off",
   "whyScore": "Worst regret {value}. The largest weighted regret is the limiting trade-off: it sets the rank, and ties go to the lower mean weighted regret.",
   "whyScoreTied": "Worst regret {value}, shared by {axes}. Together they are the limiting trade-off: they set the rank, and ties go to the lower mean weighted regret.",
-  "whyNoRegret": "Worst regret {value}. This model has the best Full Catalog frontier value on every axis with power, so no trade-off limits it.",
+  "whyNoRegret": "Worst regret {value}. Every axis with power adds zero weighted regret, so no trade-off limits this model's rank. Zero does not always mean the best value: when the Full Catalog frontier has only one distinct value on an axis, such as at a corner of the triangle, there is no spread to measure gaps against, and every model scores zero on that axis.",
   "whyAxisJoin": " and ",
   "whyDominated": "{name} ({creator}) dominates this model among the checked creators. Compared with this model, {name} is:",
   "whyDifferenceHigherBetter": "{axis}: {amount} {unit} higher, which is better",

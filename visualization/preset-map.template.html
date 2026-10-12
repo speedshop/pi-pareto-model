@@ -514,7 +514,11 @@
     tr.top td { background: rgba(255, 255, 255, 0.75); }
     tr.top td:first-child { box-shadow: inset 3px 0 0 var(--ink); }
     tr.flash td { animation: flash 900ms ease; }
-    tr.dominated td { opacity: 0.48; }
+    tr.dominated td:not(.model-cell),
+    tr.dominated .model-cell .swatch,
+    tr.dominated .model-cell .name,
+    tr.dominated .model-cell .creator,
+    tr.dominated .model-cell .dominator { opacity: 0.48; }
 
     @keyframes flash {
       from { background: rgba(255, 228, 140, 0.85); }
@@ -1549,7 +1553,7 @@ __RANKING_MODULE__
         }, t("whyToggle"));
         names.append(toggle);
         model.append(swatch, names);
-        const modelCell = htmlElement("td");
+        const modelCell = htmlElement("td", { class: "model-cell" });
         modelCell.append(model);
         row.append(
           htmlElement("td", { class: "rank" }, rank ? String(rank) : t("dominatedRank")),
