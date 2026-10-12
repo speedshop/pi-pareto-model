@@ -8,12 +8,8 @@ The Pareto Model Triangle helps a reader choose among model variants using intel
 An evaluated model configuration identified by checkpoint, quantization, and reasoning level.
 _Avoid_: Model, candidate
 
-**Preset**:
-A name for a Power Allocation. The page ships Overall, Fast, Smart, and Cheap, and a reader can save more names in the browser.
-_Avoid_: Mode, profile
-
 **Power Allocation**:
-A fixed budget of 12 units distributed across Smart, Reference Task Time, and Reference Task Cost in quarter-unit steps. Axes with power define Pareto domination, and the allocation supplies the regret weights for ranking. An axis with no power participates in neither phase.
+A fixed budget of 12 units distributed across Smart, Reference Task Time, and Reference Task Cost in quarter-unit steps. Axes with power define Pareto domination, and the allocation supplies the regret weights for ranking. An axis with no power participates in neither phase. The page does not display the allocation: the reader sets priorities on the triangle, and only the URL hash carries the numbers.
 _Avoid_: Axis toggle, hidden weight
 
 **Full Catalog**:

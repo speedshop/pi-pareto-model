@@ -8,7 +8,7 @@ It compares each model variant (model and thinking level combo) with three measu
 - **Time:** Lower values are better.
 - **Cost:** Lower values are better.
 
-The page shows a triangle of power allocations. Each hexagon is colored by the model that ranks first for that allocation. Set the allocation on the triangle by clicking or dragging, or drag a preset's pin to move it. Below the triangle, you can read the current allocation, jump to presets, choose which creators' models may compete, and read the ranked frontier with an explanation for each row.
+The page shows a triangle of priorities. Each corner stands for caring about one measure only, and each hexagon is a mix of the three, colored by the model that ranks first for that mix. Set your priorities on the triangle by clicking or dragging. Below the triangle, you can read the top model's actual Smart, Time, and Cost values, choose which creators' models may compete, and read the ranked frontier with an explanation for each row.
 
 The page hides any model which is Pareto-dominated by another (e.g., you should never use model X because model Y is as smart and as fast but cheaper). It computes the frontier and the ranking in the browser from an embedded copy of the catalog. It makes no network requests and needs no server.
 
@@ -51,7 +51,7 @@ The build:
 1. Loads the catalog from `--catalog` or `--url`, or from the configured file, GitHub, or HTTP source.
 2. Validates the catalog against the schema for its `schemaVersion`.
 3. Checks that the catalog allows redistribution.
-4. Embeds each variant's id, display name, creator, release date when present, and metrics, plus the catalog's name, version, generation date, attribution, terms URL, and metric definitions.
+4. Embeds each variant's id, display name, creator, reasoning label and release date when present, and metrics, plus the catalog's name, version, generation date, attribution, terms URL, and metric definitions.
 5. Inlines the ranking module from `src/ranking.js`.
 6. Embeds the page text from `visualization/strings/claudish.json`, with any `--strings` overrides applied.
 7. Writes `preset-map.html` and prints its path, variant count, and catalog name.
@@ -166,58 +166,41 @@ Do not put the token value in the configuration file. The URL and header values 
 
 ### Triangle
 
-Each corner puts all 12 power units on one measure: Smart at the bottom left, Time at the top, and Cost at the bottom right.
+The corners are labeled **Smarter** at the bottom left, **Faster** at the top, and **Cheaper** at the bottom right. Each corner puts all of the weight on one measure: Smart, Time, or Cost. A spot on the triangle is a mix of priorities, not a target score, time, or cost.
 
-Each hexagon is one whole-unit Power Allocation. Each edge runs 12 whole-unit steps from one pure pole to the next, giving 13 hexagons per edge and 91 in total. A hexagon's color names the top-ranked frontier model for its allocation. Colors follow the model family, and higher thinking effort uses a darker shade. Adjacent hexagons with the same winner form a region. The page labels regions largest first, each on an opaque backing in the region's color. A label must not overlap a larger region's label, a Preset symbol or its name label, or a corner pill. When it does not fit at the region's center, the page tries the region's hexagons nearest the center, then a smaller size, then an unrotated label. It skips a label only when nothing fits, and it skips single-hexagon regions. Hover over or focus any hexagon to name its winner.
+Internally, each position is a Power Allocation of 12 units across the three measures. The page itself never shows those numbers; only the URL hash carries them. Each hexagon is one whole-unit allocation. Each edge runs 12 whole-unit steps from one pure pole to the next, giving 13 hexagons per edge and 91 in total. A hexagon's color names the top-ranked frontier model for its mix. See [Colors](#colors). Adjacent hexagons with the same winner form a region. The page labels regions largest first, each on an opaque backing in the region's color. A label must not overlap a larger region's label or a corner pill. When it does not fit at the region's center, the page tries the region's hexagons nearest the center, then a smaller size, then an unrotated label. It skips a label only when nothing fits, and it skips single-hexagon regions. Hover over or focus any hexagon to read its priorities in words, for example `Smart, then Time, then Cost`, and its winner.
 
-Click or tap a hexagon to choose its allocation. Keep the pointer pressed and move it more than a few pixels to start a drag, then drag across the triangle to set the allocation continuously: the page snaps each measure to quarter units totalling 12 and updates the table as you move. Dragging past an edge clamps to the triangle. The URL hash updates once, when you release. The ring marks the current allocation, which can sit between hexagons at quarter-unit positions.
-
-Pressing on a Preset pin acts on the pin instead of the hexagon under it. See [Presets](#presets).
+Click or tap a hexagon to choose its mix. Keep the pointer pressed and move it more than a few pixels to start a drag, then drag across the triangle to set your priorities continuously: the page snaps to quarter units internally and updates the table as you move. Dragging past an edge clamps to the triangle. The URL hash updates once, when you release. The ring marks your current priorities, which can sit between hexagons. Press on the ring itself and drag to move it from where it is; pressing the ring without dragging changes nothing.
 
 To use the keyboard, tab to the triangle, move between hexagons with the arrow keys, and press Enter or Space to choose one.
 
-### Priorities
+### Colors
 
-The card below the triangle starts with **Priorities**, a line that shows the current allocation, for example `Smart 7.25 · Time 3.25 · Cost 1.5`. The three values always total 12. Change the allocation on the triangle or with a Preset; the line only reports it.
+Every model keeps one color, used for its hexagons, region label backing, key entry, table swatch, top model, and summary bar. The page assigns colors once from the Full Catalog, so checking creators, searching, or moving on the triangle never changes them.
 
-A measure with zero power does not affect Pareto domination or ranking. Its column stays visible.
+- **Creator.** Each creator has a hue. xAI and SpaceXAI, Anthropic, Z AI and Z.ai, Alibaba, OpenAI, Moonshot AI and Kimi, Google, Meta, and DeepSeek each have a fixed hue spaced around the color wheel, so they look the same in every catalog. Other creators get one of the hues between those, chosen from the creator's name. Two smaller creators can share that hue, offset slightly from each other.
+- **Model family.** A family is the display name without the parenthetical that names its thinking level, so `GPT-5.6 Sol (high)` and `GPT-5.6 Sol (low)` share the family `GPT-5.6 Sol`, while `GPT-5.5 Instant (June 2026)` stays its own family. A creator's families, in name order, get nearby shades of the creator's hue that differ in hue, saturation, and lightness.
+- **Thinking level.** The page reads the level from the catalog's `reasoning.label`, and from the display name when the catalog has none. It orders Off (also None or Non-reasoning) < Minimal < Low < Medium < High < Xhigh < Max. Within one family, a higher level is always darker. Reasoning, a level the catalog reports without an effort, is darker than Off. Reasoning and unrecognized or missing levels use the family's middle shade and are not ordered against the effort levels.
 
-### Presets
+The page picks black or white text for each color, whichever reads better, and every color keeps at least a 4.5:1 contrast with its text. Colors are not globally unique: in a crowded catalog, distant families can look alike.
 
-The page has these built-in Presets. The values use Smart/Time/Cost order:
+### Top model
 
-| Preset | Allocation | Purpose |
-|---|---:|---|
-| Overall | `7.25/3.25/1.5` | Balance Smart and Time with the most power on Smart |
-| Fast | `5/5.25/1.75` | Balance Smart and Time with a slight Time preference |
-| Smart | `8/2.25/1.75` | Give strong priority to Smart |
-| Cheap | `1.25/1/9.75` | Give the most power to Cost |
+The card below the triangle starts with the top-ranked model for your current priorities: its name, creator, and actual Smart, Time, and Cost values from the catalog, each with the catalog's unit for that measure. It is the same model as the table's first row and follows the triangle as you click or drag. With no creator checked, it says so and shows no values.
 
-Each Preset is a pin on the triangle. Each built-in Preset has its own symbol: Overall is a circle, Fast a triangle, Smart a diamond, and Cheap a square. Saved Presets cycle through hollow versions of the same shapes in the order you saved them. Each chip shows its Preset's symbol, and the triangle shows the same symbol at the Preset's allocation with its name beside it. Click a chip, or click or tap a pin, to jump to that allocation.
-
-To move a Preset, press on its pin and drag it more than a few pixels. The pin snaps to quarter units totalling 12 and stays inside the triangle. The current allocation moves with the pin, so the ring, the table, and the URL hash follow it. The hash updates once, when you release. Region labels move out of the way of the pin's new position after you release.
-
-To move a pin with the keyboard, tab to it and use the arrow keys. Each press moves one quarter unit:
-
-- **Right** moves a quarter unit from Smart to Cost, and **Left** moves it back.
-- **Up** moves a quarter unit to Time from the larger of Smart and Cost, and **Down** moves a quarter unit from Time to the larger of the two.
-- **Enter** or **Space** jumps the current allocation to the pin.
-
-Moves are saved in the browser's `localStorage`, so they stay on that browser only. A moved built-in Preset keeps its new position after a reload, and its chip gains a **↺** control. Click **↺** to put that Preset back at its default allocation. The defaults in the table above never change.
-
-Click **Save preset**, enter a name, and press Enter or click **Save** to keep the current allocation as a new pin. Press Escape or click **Cancel** to close the name field without saving. Built-in Preset names are rejected. The browser stores saved Presets in `localStorage` too. Click **×** on a saved Preset to remove it.
+A measure at zero weight, on the triangle's edge opposite its corner, does not affect Pareto domination or ranking. Its column stays visible.
 
 ### Creators
 
-Below the Presets, a collapsed **Creators** section lists every creator in the catalog alphabetically, each with a checkbox. All start checked. Its heading shows how many are checked, for example `3 of 9 selected`, so an active creator filter stays visible while the section is closed. **Select all** checks every creator and **Clear** unchecks them all.
+Below the top model, a collapsed **Creators** section lists every creator in the catalog alphabetically, each with a checkbox. All start checked. Its heading shows how many are checked, for example `3 of 9 selected`, so an active creator filter stays visible while the section is closed. **Select all** checks every creator and **Clear** unchecks them all.
 
-Only checked creators' models compete. Unchecking a creator recomputes every hexagon's winner, the region colors, labels and key, the table, its caption, and the small-screen summary bar. A model from an unchecked creator never wins a hexagon and never appears in the table, even among dominated rows. Domination is judged among the checked creators' models only, so a model whose only dominators are unchecked joins the frontier.
+Only checked creators' models compete. Unchecking a creator recomputes every hexagon's winner, the region colors, labels and key, the top model, the table, its caption, and the small-screen summary bar. A model from an unchecked creator never wins a hexagon and never appears in the table, even among dominated rows. Domination is judged among the checked creators' models only, so a model whose only dominators are unchecked joins the frontier.
 
 The regret yardstick does not change. See [Ranking](#ranking).
 
-With no creator checked, the hexagons turn a neutral grey, the key is empty, and the table says that no creators are checked instead of naming a model. Presets, pins, the hash, and dragging keep working.
+With no creator checked, the hexagons turn a neutral grey, the key is empty, and the top model and the table say that no creators are checked instead of naming a model. The hash and dragging keep working.
 
-The browser stores the selection in `localStorage` under `pareto-model-creators`, apart from Presets, as `{"selected": [...], "known": [...]}`: the checked creators and every creator the page knew when it saved. On load:
+The browser stores the selection in `localStorage` under `pareto-model-creators` as `{"selected": [...], "known": [...]}`: the checked creators and every creator the page knew when it saved. On load:
 
 - With nothing stored, or anything unreadable, every creator is checked.
 - A stored empty `selected` list stays empty.
@@ -226,29 +209,29 @@ The browser stores the selection in `localStorage` under `pareto-model-creators`
 
 ### URL hash
 
-The URL hash holds the current allocation, for example `#s=7.25&t=3.25&c=1.5`. Share or bookmark the URL to return to that allocation.
+The URL hash holds the internal allocation for the current priorities, for example `#s=7.25&t=3.25&c=1.5`. Share or bookmark the URL to return to those priorities.
 
-The page uses Overall when the hash is missing, is malformed, uses steps other than quarter units, or does not total 12.
+The page starts at `7.25/3.25/1.5` (Smart/Time/Cost) when the hash is missing, is malformed, uses steps other than quarter units, or does not total 12.
 
 ### Ranked table
 
-The table lists the frontier of the checked creators' models for the current allocation in rank order. The top row is the selected model. When you click a hexagon, the page clears the search box and highlights its winner in the top row. While a search is active, the filter can hide the rank 1 row.
+The table lists the frontier of the checked creators' models for the current priorities in rank order. The top row is the selected model. When you click a hexagon, the page clears the search box and highlights its winner in the top row. While a search is active, the filter can hide the rank 1 row.
 
 Each Smart, Time, and Cost cell has a bar. A longer bar is better, scaled between the shown rows' minimum and maximum. Each Time value uses seconds below 60 seconds and minutes at or above.
 
 **Show dominated** adds the checked creators' dominated variants after the frontier in grey. Each one names a checked creator's model that dominates it.
 
-The search box filters rows by model name or creator as you type. It only hides table rows: unlike Creators, it never changes the triangle, the ranking, or the summary bar.
+The search box filters rows by model name or creator as you type. It only hides table rows: unlike Creators, it never changes the triangle, the ranking, the top model, or the summary bar.
 
 The caption above the table counts the frontier models and names the top one.
 
 ### Why this model?
 
-Each row, on wide and small screens, has a **Why this model?** button that opens a detail row beneath it. The detail lists the row's weighted regret on Smart, Time, and Cost, the same numbers the ranking used. Regret has no units, and lower is better. The largest weighted regret is marked as the limiting trade-off, because it alone sets the rank. When two or three axes share that exact value, each is marked as tied. A measure with no power is marked as not considered. A model with zero regret on every powered measure has no limiting trade-off.
+Each row, on wide and small screens, has a **Why this model?** button that opens a detail row beneath it. The detail lists the row's weighted regret on Smart, Time, and Cost, the same numbers the ranking used. Regret has no units, and lower is better. The largest weighted regret is marked as the limiting trade-off, because it alone sets the rank. When two or three axes share that exact value, each is marked as tied. A measure the current priorities leave out is marked as not considered. A model with zero regret on every considered measure has no limiting trade-off.
 
 A dominated row also names its dominator among the checked creators and lists how the dominator differs on each measure: the amount, the catalog's unit for that measure, whether it is higher or lower, and whether that is better or worse.
 
-An open detail stays open by variant while you change the allocation or drag, and its numbers follow the allocation. Unchecking a variant's creator closes its detail.
+An open detail stays open by variant while you change your priorities or drag, and its numbers follow them. Unchecking a variant's creator closes its detail.
 
 ### Explainer
 
@@ -259,8 +242,7 @@ Below the table, a short explainer covers how the ranking works, what regret mea
 At 600px wide or narrower:
 
 - The triangle spans the full width. A key below it lists each region label in the same order, with the model's color, in place of the labels on the triangle.
-- Preset symbols appear on the triangle without their names. The chips serve as the key.
-- A bar fixed to the bottom of the screen shows the current allocation and the top-ranked model's name, creator, and Smart, Time, and Cost values, or says that no creators are checked.
+- A bar fixed to the bottom of the screen repeats the top-ranked model's name, creator, and Smart, Time, and Cost values, or says that no creators are checked.
 - Each table row becomes a two-line card: rank, color, model, creator, and the Why this model? button, then Smart, Time, and Cost with their bars. The worst-regret column is hidden, but the detail still shows each weighted regret.
 
 ## Ranking

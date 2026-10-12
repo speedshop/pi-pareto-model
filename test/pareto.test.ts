@@ -1,10 +1,9 @@
 import fixture from "./fixtures/model-selection-catalog.json" with { type: "json" };
 import { describe, expect, it } from "vitest";
-import { DEFAULT_PRESETS, dominatorOf, paretoFront, rankVariants } from "../src/ranking.js";
+import { dominatorOf, paretoFront, rankVariants } from "../src/ranking.js";
 
 type Metrics = { smart: number; fast: number; cheap: number };
 type Variant = { id: string; name: string; creator: string; metrics: Metrics };
-type Preset = keyof typeof DEFAULT_PRESETS;
 
 const variants: Variant[] = fixture.variants.map((variant) => ({
   id: variant.id,
@@ -13,8 +12,16 @@ const variants: Variant[] = fixture.variants.map((variant) => ({
   metrics: { ...variant.metrics },
 }));
 
-function rank(items: readonly Variant[], preset: Preset, reference: readonly Variant[] = items) {
-  return rankVariants(items, DEFAULT_PRESETS[preset], undefined, reference);
+const ALLOCATIONS = {
+  overall: { smart: 7.25, fast: 3.25, cheap: 1.5 },
+  fast: { smart: 5, fast: 5.25, cheap: 1.75 },
+  smart: { smart: 8, fast: 2.25, cheap: 1.75 },
+  cheap: { smart: 1.25, fast: 1, cheap: 9.75 },
+};
+type AllocationName = keyof typeof ALLOCATIONS;
+
+function rank(items: readonly Variant[], name: AllocationName, reference: readonly Variant[] = items) {
+  return rankVariants(items, ALLOCATIONS[name], undefined, reference);
 }
 
 function withMetrics(metrics: Metrics[], prefix: string): Variant[] {
@@ -36,16 +43,16 @@ describe("Pareto ranking", () => {
     expect(smartOnly[0]?.name).toBe("Claude Opus 5 (high)");
   });
 
-  it.each(["overall", "fast", "smart", "cheap"] satisfies Preset[])("orders %s deterministically", (preset) => {
+  it.each(["overall", "fast", "smart", "cheap"] satisfies AllocationName[])("orders %s deterministically", (name) => {
     const front = paretoFront(variants);
-    const first = rank(front, preset).map((variant) => variant.id);
-    const second = rank([...front].reverse(), preset).map((variant) => variant.id);
+    const first = rank(front, name).map((variant) => variant.id);
+    const second = rank([...front].reverse(), name).map((variant) => variant.id);
     expect(first).toEqual(second);
   });
 
   it("keeps scores and ordering stable when variants are filtered", () => {
     const reference = paretoFront(variants);
-    const allocation = DEFAULT_PRESETS.overall;
+    const allocation = ALLOCATIONS.overall;
     const rankedFull = rankVariants(reference, allocation, undefined, reference);
     const keptIds = new Set(rankedFull.filter((_variant, index) => index % 2 === 0).map((variant) => variant.id));
     const rankedKept = rankVariants(

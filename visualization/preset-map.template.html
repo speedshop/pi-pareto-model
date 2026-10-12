@@ -92,7 +92,12 @@
       stroke-width: 3;
     }
 
-    #labels, #marker { pointer-events: none; }
+    #labels { pointer-events: none; }
+
+    #marker {
+      cursor: grab;
+      pointer-events: all;
+    }
 
     .hex-label {
       font-size: 13px;
@@ -124,36 +129,6 @@
       stroke-width: 2;
       pointer-events: none;
       vector-effect: non-scaling-stroke;
-    }
-
-    .preset-dot { cursor: grab; }
-
-    .preset-symbol {
-      fill: var(--ink);
-      stroke: var(--paper);
-      stroke-width: 2.5;
-    }
-
-    .preset-symbol.hollow {
-      fill: var(--paper);
-      stroke: var(--ink);
-    }
-
-    .preset-label {
-      font-size: 12px;
-      font-weight: 800;
-      pointer-events: none;
-      text-rendering: geometricPrecision;
-    }
-
-    .preset-label rect {
-      fill: var(--paper);
-      stroke: var(--rule);
-    }
-
-    .preset-label text {
-      fill: var(--ink);
-      dominant-baseline: central;
     }
 
     #marker circle.outer {
@@ -195,106 +170,64 @@
       text-transform: uppercase;
     }
 
-    .allocation-line {
-      margin: 0;
-      font-size: 0.9rem;
-      font-weight: 850;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .chip, .save button {
-      border: 1px solid var(--rule);
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.7);
-      cursor: pointer;
-    }
-
     .caption {
       margin: 2px 0 0;
       color: var(--muted);
       font-size: 0.7rem;
     }
 
-    .presets {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .chip-group { display: inline-flex; }
-
     .chip {
       display: inline-flex;
       gap: 5px;
       align-items: center;
       padding: 4px 11px;
-      font-size: 0.78rem;
-      font-weight: 800;
-    }
-
-    .chip-symbol {
-      width: 0.8em;
-      height: 0.8em;
-      overflow: visible;
-      fill: currentColor;
-    }
-
-    .chip-symbol.hollow {
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2.5;
-    }
-
-    .chip[aria-pressed="true"] {
-      background: var(--ink);
-      border-color: var(--ink);
-      color: #fff;
-    }
-
-    .chip-group .chip.has-remove {
-      overflow-wrap: anywhere;
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-    }
-
-    .chip-group .remove {
-      padding: 4px 8px;
-      border-left: 0;
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-      font-weight: 900;
-    }
-
-    .save {
-      display: inline-flex;
-      max-width: 100%;
-      margin-left: auto;
-    }
-
-    .save form {
-      display: flex;
-      gap: 4px;
-      min-width: 0;
-    }
-
-    .save [hidden] { display: none; }
-
-    .save input {
-      flex: 0 1 9rem;
-      min-width: 0;
-      padding: 3px 10px;
       border: 1px solid var(--rule);
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.85);
-      font-size: 0.78rem;
-    }
-
-    .save button {
-      padding: 4px 11px;
+      background: rgba(255, 255, 255, 0.7);
       font-size: 0.78rem;
       font-weight: 800;
+      cursor: pointer;
     }
+
+    .winner .model {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+    }
+
+    .winner .model .name, .winner .model .creator { overflow-wrap: anywhere; }
+
+    .winner-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .winner-metrics dt {
+      color: var(--muted);
+      font-size: 0.64rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .winner-metrics dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .winner-metrics .value {
+      font-size: 1.05rem;
+      font-weight: 850;
+    }
+
+    .winner-metrics .unit {
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+
+    .winner .caption { margin-top: 8px; }
 
     .creators summary {
       cursor: pointer;
@@ -616,13 +549,10 @@
       .legend { display: flex; }
       .summary { display: grid; }
       .hex polygon { stroke-width: 0.75; }
-      .preset-symbol { transform: scale(2.3); }
-      .preset-label { visibility: hidden; }
       .explainer { font-size: 14px; }
       #marker circle { r: 14px; }
-      .caption, caption { font-size: 0.75rem; }
-      .chip, .save button, .save input, .table-tools { font-size: 0.8125rem; }
-      .save { margin-left: 0; }
+      .caption, caption, .winner-metrics .unit { font-size: 0.75rem; }
+      .chip, .table-tools { font-size: 0.8125rem; }
       .table-scroll { overflow-x: visible; }
       table { font-size: 0.8125rem; }
       table, caption, thead, tbody { display: block; }
@@ -632,7 +562,7 @@
         grid-template-columns: 1.75rem repeat(3, minmax(0, 1fr));
       }
 
-      th { font-size: 0.6875rem; }
+      th, .winner-metrics dt { font-size: 0.6875rem; }
       th, td { border-bottom: 0; }
       thead tr { border-bottom: 1px solid var(--rule); }
       tbody tr { border-bottom: 1px solid rgba(25, 29, 35, 0.06); }
@@ -668,10 +598,6 @@
       <title id="map-title" data-i18n="mapTitle"></title>
       <desc id="map-description" data-i18n="mapDescription"></desc>
       <defs>
-        <symbol id="preset-circle" viewBox="-10 -10 20 20" overflow="visible"><circle r="8" /></symbol>
-        <symbol id="preset-triangle" viewBox="-10 -10 20 20" overflow="visible"><path d="M0 -10 L8.7 5 L-8.7 5 Z" /></symbol>
-        <symbol id="preset-diamond" viewBox="-10 -10 20 20" overflow="visible"><path d="M0 -9.5 L9.5 0 L0 9.5 L-9.5 0 Z" /></symbol>
-        <symbol id="preset-square" viewBox="-10 -10 20 20" overflow="visible"><rect x="-7" y="-7" width="14" height="14" /></symbol>
         <clipPath id="triangle-clip">
           <path d="M400 70 L72 636 L728 636 Z" />
         </clipPath>
@@ -688,7 +614,6 @@
       <g id="hexes" clip-path="url(#triangle-clip)" filter="url(#paper-grain)"></g>
       <path class="triangle-outline" d="M400 70 L72 636 L728 636 Z" />
       <g id="labels"></g>
-      <g id="preset-dots"></g>
       <g id="marker">
         <circle class="outer" r="9" />
         <circle class="inner" r="9" />
@@ -711,24 +636,11 @@
     <ol class="legend" id="legend" data-i18n-aria-label="legendLabel"></ol>
 
     <section class="panel controls">
-      <div>
-        <p class="eyebrow" data-i18n="allocationHeading"></p>
-        <p class="allocation-line" id="allocation"></p>
-      </div>
-      <div>
-        <p class="eyebrow" data-i18n="presetsHeading"></p>
-        <p class="caption preset-hint" data-i18n="presetHint"></p>
-        <div class="presets">
-          <div class="presets" id="preset-chips"></div>
-          <div class="save">
-            <button type="button" id="save-start" data-i18n="savePreset"></button>
-            <form id="save-preset" hidden novalidate>
-              <input id="preset-name" type="text" maxlength="40" required data-i18n-placeholder="presetNamePlaceholder" data-i18n-aria-label="presetNameLabel">
-              <button type="submit" data-i18n="save"></button>
-              <button type="button" id="save-cancel" data-i18n="cancel"></button>
-            </form>
-          </div>
-        </div>
+      <div class="winner">
+        <p class="eyebrow" data-i18n="winnerHeading"></p>
+        <p class="model"><span class="swatch" id="winner-swatch"></span><span><span class="name" id="winner-name"></span> <span class="creator" id="winner-creator"></span></span></p>
+        <dl class="winner-metrics" id="winner-metrics"></dl>
+        <p class="caption" data-i18n="winnerNote"></p>
       </div>
       <details class="creators">
         <summary><span class="eyebrow" data-i18n="creatorsHeading"></span> <span id="creator-count"></span></summary>
@@ -802,10 +714,7 @@ __RANKING_MODULE__
 
     const AXIS_LABELS = { smart: t("axisSmart"), fast: t("axisTime"), cheap: t("axisCost") };
     const HASH_KEYS = { smart: "s", fast: "t", cheap: "c" };
-    const PRESET_LABELS = { overall: t("presetOverall"), fast: t("presetFast"), smart: t("presetSmart"), cheap: t("presetCheap") };
-    const PRESET_SHAPES = { overall: "circle", fast: "triangle", smart: "diamond", cheap: "square" };
-    const STORAGE_KEY = "pareto-model-presets";
-    const OVERRIDES_KEY = "pareto-preset-overrides";
+    const INITIAL_ALLOCATION = { smart: 7.25, fast: 3.25, cheap: 1.5 };
     const CREATORS_KEY = "pareto-model-creators";
     const EMPTY_HEX_COLOR = "#d6d2c8";
     const triangle = {
@@ -813,45 +722,91 @@ __RANKING_MODULE__
       fast: { x: 400, y: 70 },
       cheap: { x: 728, y: 636 },
     };
-    const palette = [
-      "#1764ed",
-      "#e52b24",
-      "#079c48",
-      "#e9b600",
-      "#7131dc",
-      "#00acc7",
-      "#df1499",
-      "#008c80",
-      "#ed530c",
-      "#393cdb",
-      "#df8500",
-      "#72a008",
-      "#a526c4",
-      "#007db8",
-    ];
-    function modelColors(name) {
-      let effort;
+    const CREATOR_HUES = {
+      xAI: 15,
+      SpaceXAI: 15,
+      Anthropic: 55,
+      "Z AI": 95,
+      "Z.ai": 95,
+      Alibaba: 135,
+      OpenAI: 175,
+      "Moonshot AI": 215,
+      Kimi: 215,
+      Google: 255,
+      Meta: 295,
+      DeepSeek: 335,
+    };
+    const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
+
+    function thinkingLevel(label) {
+      const level = label?.toLowerCase().replace(/^(none|non-reasoning)$/, "off");
+      return level === "reasoning" || THINKING_LEVELS.includes(level) ? level : undefined;
+    }
+
+    function modelFamily(name) {
+      let label;
       const family = name.replace(/\s*\(([^)]*)\)/g, (match, qualifier) => {
-        const level = qualifier.match(/\b(low|medium|high|xhigh|max) effort\b/i)
-          ?? qualifier.match(/^(low|medium|high|xhigh|max|non-reasoning)$/i);
+        const level = qualifier.match(/\b(minimal|low|medium|high|xhigh|max) effort\b/i)
+          ?? qualifier.match(/\b(non-reasoning|reasoning|none|off|minimal|low|medium|high|xhigh|max)\b/i);
         if (!level) return match;
-        effort = level[1].toLowerCase();
+        label ??= level[1];
         return "";
-      }).trim().toLowerCase();
-      const hash = Array.from(family).reduce((value, character) =>
-        (Math.imul(value, 31) + character.charCodeAt(0)) >>> 0, 0);
-      const base = palette[hash % palette.length];
-      const shade = { "non-reasoning": 0.25, low: 0.1, medium: -0.05, high: -0.2, xhigh: -0.35, max: -0.5 }[effort] ?? -0.2;
-      const rgb = base.match(/[a-f\d]{2}/gi).map((hex) => {
-        const channel = parseInt(hex, 16);
-        return Math.round(shade >= 0 ? channel + (255 - channel) * shade : channel * (1 + shade));
-      });
-      const linear = rgb.map((channel) => {
+      }).trim();
+      return { family, label };
+    }
+
+    function oklchColor(lightness, chroma, hue) {
+      const linear = (amount) => {
+        const a = amount * Math.cos(hue * Math.PI / 180);
+        const b = amount * Math.sin(hue * Math.PI / 180);
+        const [l, m, s] = [
+          lightness + 0.3963377774 * a + 0.2158037573 * b,
+          lightness - 0.1055613458 * a - 0.0638541728 * b,
+          lightness - 0.0894841775 * a - 1.291485548 * b,
+        ].map((value) => value ** 3);
+        return [
+          4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+          -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+          -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+        ];
+      };
+      let fitted = chroma;
+      while (fitted > 0 && linear(fitted).some((channel) => channel < 0 || channel > 1)) fitted -= 0.002;
+      const rgb = linear(Math.max(0, fitted)).map((channel) => Math.round(255 * Math.min(1, Math.max(0,
+        channel <= 0.0031308 ? 12.92 * channel : 1.055 * channel ** (1 / 2.4) - 0.055))));
+      const luminance = rgb.map((channel) => {
         const value = channel / 255;
         return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-      });
-      const luminance = linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+      }).reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
       return [`rgb(${rgb.join(", ")})`, luminance > 0.179 ? "#000000" : "#ffffff"];
+    }
+
+    function assignModelColors(models) {
+      const described = models.map((model) => ({ model, ...modelFamily(model.name) }));
+      const families = new Map();
+      described.forEach(({ model, family }) => {
+        families.set(model.creator, new Set([...(families.get(model.creator) ?? []), family]));
+      });
+      const slots = new Map();
+      [...families.keys()].filter((creator) => !(creator in CREATOR_HUES)).sort((left, right) => left.localeCompare(right))
+        .forEach((creator) => {
+          const hash = Array.from(creator).reduce((value, character) =>
+            (Math.imul(value, 31) + character.charCodeAt(0)) >>> 0, 0);
+          slots.set(creator, { slot: hash % 9, rank: [...slots.values()].filter((other) => other.slot === hash % 9).length });
+        });
+      described.forEach(({ model, family, label }) => {
+        const siblings = [...families.get(model.creator)].sort((left, right) => left.localeCompare(right));
+        const index = siblings.indexOf(family);
+        const minor = slots.get(model.creator);
+        const hue = minor ? 35 + minor.slot * 40 + ((minor.rank * 0.618034) % 1 - 0.5) * 24 : CREATOR_HUES[model.creator];
+        const level = thinkingLevel(model.reasoning) ?? thinkingLevel(label);
+        const shade = level === undefined || level === "reasoning" ? 3.5 : THINKING_LEVELS.indexOf(level);
+        [model.color, model.ink] = oklchColor(
+          0.86 + [0, 0.04, -0.04][index % 3] - shade * 0.075,
+          (minor ? 0.1 : 0.16) * [1, 0.5, 0.75][Math.floor(index / 2) % 3],
+          hue + ((index * 0.618034) % 1 - 0.5) * 30,
+        );
+      });
     }
 
     function compactQualifier(parenthetical) {
@@ -873,9 +828,7 @@ __RANKING_MODULE__
       return lines;
     }
 
-    variants.forEach((variant) => {
-      [variant.color, variant.ink] = modelColors(variant.name);
-    });
+    assignModelColors(variants);
     const variantsById = new Map(variants.map((variant) => [variant.id, variant]));
 
     function svgElement(name, attributes = {}) {
@@ -909,9 +862,21 @@ __RANKING_MODULE__
       return Number(value.toFixed(2)).toString();
     }
 
-    function describeAllocation(allocation) {
-      return AXES.map((axis) => t("allocationPart", { axis: AXIS_LABELS[axis], value: formatPower(allocation[axis]) }))
-        .join(t("listSeparator"));
+    function describePriorities(allocation) {
+      const axes = enabledAxes(allocation);
+      if (axes.length === 1) return t("priorityOnly", { axis: AXIS_LABELS[axes[0]] });
+      if (axes.length === 3 && axes.every((axis) => allocation[axis] === allocation.smart)) return t("priorityAllEqual");
+      const levels = [...new Set(axes.map((axis) => allocation[axis]))].sort((left, right) => right - left);
+      const order = levels.map((level) => {
+        const tied = axes.filter((axis) => allocation[axis] === level).map((axis) => AXIS_LABELS[axis]);
+        return tied.length > 1 ? t("priorityEqual", { axes: tied.join(t("priorityAxisJoin")) }) : tied[0];
+      }).join(t("priorityThen"));
+      const ignored = AXES.filter((axis) => !axes.includes(axis)).map((axis) => AXIS_LABELS[axis]);
+      return ignored.length === 0 ? order : t("priorityIgnored", { order, axes: ignored.join(t("priorityAxisJoin")) });
+    }
+
+    function metricUnit(axis) {
+      return catalog.metricDefinitions[axis].unit.replaceAll("-", " ");
     }
 
     function sameAllocation(left, right) {
@@ -971,7 +936,7 @@ __RANKING_MODULE__
       cells.forEach((cell) => {
         const top = ranked(cell.allocation).ranking[0];
         cell.winner = top && variantsById.get(top.id);
-        const names = { allocation: describeAllocation(cell.allocation), model: cell.winner?.name ?? t("hexNoModel") };
+        const names = { priorities: describePriorities(cell.allocation), model: cell.winner?.name ?? t("hexNoModel") };
         cell.group.setAttribute("aria-label", t("hexLabel", names));
         cell.title.textContent = t("hexTitle", names);
         cell.polygon.setAttribute("fill", cell.winner?.color ?? EMPTY_HEX_COLOR);
@@ -1064,6 +1029,16 @@ __RANKING_MODULE__
       return left.left < right.right && right.left < left.right && left.top < right.bottom && right.top < left.bottom;
     }
 
+    document.querySelectorAll(".pole").forEach((pole) => {
+      const text = pole.querySelector("text");
+      const rect = pole.querySelector("rect");
+      const { e } = pole.transform.baseVal.consolidate().matrix;
+      const width = text.getBBox().width + 24;
+      const center = Math.min(Math.max(Number(text.getAttribute("x")), 9 - e + width / 2), 791 - e - width / 2);
+      text.setAttribute("x", center);
+      rect.setAttribute("x", center - width / 2);
+      rect.setAttribute("width", width);
+    });
     const poleBounds = [...document.querySelectorAll(".pole")].map((pole) => {
       const { e, f } = pole.transform.baseVal.consolidate().matrix;
       const box = pole.getBBox();
@@ -1132,40 +1107,11 @@ __RANKING_MODULE__
 
     let labelledRegions = [];
 
-    function placeRegionLabels(obstacles) {
+    function placeRegionLabels() {
       labels.replaceChildren();
       legend.replaceChildren();
-      placedLabels = [...obstacles, ...poleBounds];
+      placedLabels = [...poleBounds];
       labelledRegions.forEach(placeLabel);
-    }
-
-    function readCustomPresets() {
-      try {
-        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
-        return Array.isArray(stored)
-          ? stored.filter((preset) => typeof preset?.name === "string" && isPowerAllocation(preset.allocation))
-          : [];
-      } catch {
-        return [];
-      }
-    }
-
-    function readOverrides() {
-      try {
-        const stored = JSON.parse(localStorage.getItem(OVERRIDES_KEY) ?? "{}");
-        return Object.fromEntries(Object.keys(DEFAULT_PRESETS)
-          .filter((key) => isPowerAllocation(stored?.[key]))
-          .map((key) => [key, stored[key]]));
-      } catch {
-        return {};
-      }
-    }
-
-    function writePresets() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(customPresets));
-        localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides));
-      } catch {}
     }
 
     function parseHash() {
@@ -1174,213 +1120,12 @@ __RANKING_MODULE__
         const value = params.get(HASH_KEYS[axis]) ?? "";
         return [axis, /^\d+(\.\d+)?$/.test(value) ? Number(value) : Number.NaN];
       }));
-      return isPowerAllocation(allocation) ? allocation : { ...DEFAULT_PRESETS.overall };
+      return isPowerAllocation(allocation) ? allocation : { ...INITIAL_ALLOCATION };
     }
 
     let allocation = parseHash();
-    let customPresets = readCustomPresets();
-    const overrides = readOverrides();
     let focusedCell = cellAt({ smart: 7, fast: 3, cheap: 2 }) ?? cells[0];
     focusedCell.group.setAttribute("tabindex", "0");
-
-    function presets() {
-      return [
-        ...Object.entries(DEFAULT_PRESETS).map(([key, value]) => ({
-          id: key,
-          name: PRESET_LABELS[key],
-          allocation: overrides[key] ?? value,
-          builtIn: true,
-          shape: PRESET_SHAPES[key],
-        })),
-        ...customPresets.map((preset, index) => ({
-          ...preset,
-          builtIn: false,
-          shape: Object.values(PRESET_SHAPES)[index % 4],
-        })),
-      ];
-    }
-
-    function movePreset(preset, next) {
-      if (!preset.builtIn) {
-        customPresets = customPresets.map((custom) => custom.name === preset.name ? { ...custom, allocation: next } : custom);
-      } else if (sameAllocation(next, DEFAULT_PRESETS[preset.id])) {
-        delete overrides[preset.id];
-      } else {
-        overrides[preset.id] = next;
-      }
-    }
-
-    const presetDots = document.querySelector("#preset-dots");
-    const presetChips = document.querySelector("#preset-chips");
-
-    function renderPresets(relabel = true) {
-      presetDots.replaceChildren();
-      presetChips.replaceChildren();
-      const obstacles = [];
-      const nameBoxes = [];
-      const { width, height } = map.viewBox.baseVal;
-      presets().forEach((preset, index) => {
-        const point = allocationPoint(preset.allocation);
-        const dot = svgElement("g", {
-          class: "preset-dot",
-          role: "button",
-          tabindex: "0",
-          "data-preset": index,
-          "aria-label": t("presetDotLabel", { name: preset.name, allocation: describeAllocation(preset.allocation) }),
-        });
-        const title = svgElement("title");
-        title.textContent = t("presetDotTitle", { name: preset.name });
-        const symbol = svgElement("g", { transform: `translate(${point.x} ${point.y})` });
-        symbol.append(svgElement("use", {
-          href: `#preset-${preset.shape}`,
-          class: preset.builtIn ? "preset-symbol" : "preset-symbol hollow",
-          x: -8,
-          y: -8,
-          width: 16,
-          height: 16,
-        }));
-        const label = svgElement("g", { class: "preset-label" });
-        const text = svgElement("text");
-        text.textContent = preset.name;
-        label.append(text);
-        dot.append(title, symbol, label);
-        dot.addEventListener("click", (event) => {
-          if (event.detail === 0) setAllocation({ ...preset.allocation });
-        });
-        dot.addEventListener("keydown", (event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            setAllocation({ ...preset.allocation });
-            return;
-          }
-          const { smart, cheap } = preset.allocation;
-          const larger = smart >= cheap ? "smart" : "cheap";
-          const moves = { ArrowLeft: ["cheap", "smart"], ArrowRight: ["smart", "cheap"], ArrowUp: [larger, "fast"], ArrowDown: ["fast", larger] };
-          if (!moves[event.key]) return;
-          event.preventDefault();
-          const next = transferPower(preset.allocation, ...moves[event.key]);
-          if (next === preset.allocation) return;
-          movePreset(preset, next);
-          writePresets();
-          renderPresets();
-          setAllocation({ ...next });
-          presetDots.querySelector(`[data-preset="${index}"]`).focus();
-        });
-        presetDots.append(dot);
-        const backingAt = (placement) => {
-          Object.entries(placement).forEach(([key, value]) => text.setAttribute(key, value));
-          const measured = text.getBBox();
-          return { left: measured.x - 4, right: measured.x + measured.width + 4, top: measured.y - 2, bottom: measured.y + measured.height + 2 };
-        };
-        const inside = (box) => box.left >= 0 && box.right <= width && box.top >= 0 && box.bottom <= height;
-        const outward = point.x < triangle.fast.x ? -1 : 1;
-        const placements = [outward, -outward].map((side) => ({ x: point.x + side * 14, y: point.y, "text-anchor": side < 0 ? "end" : "start" }));
-        if (!inside(backingAt(placements[0]))) placements.reverse();
-        placements.push({ x: point.x, y: point.y - 20, "text-anchor": "middle" }, { x: point.x, y: point.y + 20, "text-anchor": "middle" });
-        const placement = placements.find((candidate) => {
-          const box = backingAt(candidate);
-          return inside(box) && !nameBoxes.some((placed) => intersects(placed, box));
-        }) ?? placements[0];
-        const backing = backingAt(placement);
-        nameBoxes.push(backing);
-        label.prepend(svgElement("rect", {
-          x: backing.left,
-          y: backing.top,
-          width: backing.right - backing.left,
-          height: backing.bottom - backing.top,
-          rx: 4,
-        }));
-        obstacles.push({ left: point.x - 9, right: point.x + 9, top: point.y - 9, bottom: point.y + 9 }, backing);
-
-        const group = htmlElement("span", { class: "chip-group" });
-        const moved = preset.builtIn && preset.id in overrides;
-        const chip = htmlElement("button", {
-          type: "button",
-          class: preset.builtIn && !moved ? "chip" : "chip has-remove",
-          title: describeAllocation(preset.allocation),
-        });
-        const chipSymbol = svgElement("svg", {
-          class: preset.builtIn ? "chip-symbol" : "chip-symbol hollow",
-          viewBox: "-10 -10 20 20",
-          "aria-hidden": "true",
-        });
-        chipSymbol.append(svgElement("use", { href: `#preset-${preset.shape}`, x: -10, y: -10, width: 20, height: 20 }));
-        chip.append(chipSymbol, preset.name);
-        chip.dataset.allocation = JSON.stringify(preset.allocation);
-        chip.addEventListener("click", () => setAllocation({ ...preset.allocation }));
-        group.append(chip);
-        if (moved) {
-          const reset = htmlElement("button", {
-            type: "button",
-            class: "chip remove",
-            "aria-label": t("resetPresetLabel", { name: preset.name }),
-          }, t("resetPreset"));
-          reset.addEventListener("click", () => {
-            delete overrides[preset.id];
-            writePresets();
-            renderPresets();
-          });
-          group.append(reset);
-        }
-        if (!preset.builtIn) {
-          const remove = htmlElement("button", {
-            type: "button",
-            class: "chip remove",
-            "aria-label": t("removePresetLabel", { name: preset.name }),
-            title: t("removePresetTitle", { name: preset.name }),
-          }, t("removePreset"));
-          remove.addEventListener("click", () => {
-            customPresets = customPresets.filter((custom) => custom.name !== preset.name);
-            writePresets();
-            renderPresets();
-          });
-          group.append(remove);
-        }
-        presetChips.append(group);
-      });
-      if (relabel) placeRegionLabels(obstacles);
-      renderChipState();
-    }
-
-    function renderChipState() {
-      presetChips.querySelectorAll(".chip:not(.remove)").forEach((chip) => {
-        chip.setAttribute("aria-pressed", String(sameAllocation(JSON.parse(chip.dataset.allocation), allocation)));
-      });
-    }
-
-    const saveStart = document.querySelector("#save-start");
-    const saveForm = document.querySelector("#save-preset");
-    const presetName = document.querySelector("#preset-name");
-
-    function closeSaveForm() {
-      saveForm.hidden = true;
-      saveStart.hidden = false;
-      presetName.value = "";
-      presetName.setCustomValidity("");
-      saveStart.focus();
-    }
-
-    saveStart.addEventListener("click", () => {
-      saveStart.hidden = true;
-      saveForm.hidden = false;
-      presetName.focus();
-    });
-    document.querySelector("#save-cancel").addEventListener("click", closeSaveForm);
-    saveForm.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") closeSaveForm();
-    });
-    presetName.addEventListener("input", () => presetName.setCustomValidity(""));
-    saveForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const name = presetName.value.trim();
-      const builtIn = Object.values(PRESET_LABELS).some((label) => label.toLowerCase() === name.toLowerCase());
-      presetName.setCustomValidity(name === "" ? t("errorEmptyName") : builtIn ? t("errorBuiltInName", { name }) : "");
-      if (!presetName.reportValidity()) return;
-      customPresets = [...customPresets.filter((preset) => preset.name !== name), { name, allocation: { ...allocation } }];
-      writePresets();
-      closeSaveForm();
-      renderPresets();
-    });
 
     function metricQuality(range, value) {
       if (range.min === range.max) return 1;
@@ -1423,28 +1168,34 @@ __RANKING_MODULE__
     const tableCaption = document.querySelector("#table-caption");
     const search = document.querySelector("#search");
     const showDominated = document.querySelector("#show-dominated");
-    const summarySwatch = document.querySelector("#summary-swatch");
-    const summaryName = document.querySelector("#summary-name");
-    const summaryCreator = document.querySelector("#summary-creator");
-    const summaryAxes = Object.fromEntries(AXES.map((axis) => {
+    const winnerSwatches = document.querySelectorAll("#summary-swatch, #winner-swatch");
+    const winnerNames = document.querySelectorAll("#summary-name, #winner-name");
+    const winnerCreators = document.querySelectorAll("#summary-creator, #winner-creator");
+    const summaryValues = Object.fromEntries(AXES.map((axis) => {
       const cell = htmlElement("div");
-      const label = htmlElement("span", { class: "axis" });
       const value = htmlElement("span", { class: "value" });
-      cell.append(label, value);
+      cell.append(htmlElement("span", { class: "axis" }, AXIS_LABELS[axis]), value);
       document.querySelector("#summary-axes").append(cell);
-      return [axis, { label, value }];
+      return [axis, value];
+    }));
+    const winnerValues = Object.fromEntries(AXES.map((axis) => {
+      const item = htmlElement("div");
+      const value = htmlElement("dd", { class: "value" });
+      item.append(htmlElement("dt", {}, AXIS_LABELS[axis]), value, htmlElement("dd", { class: "unit" }, metricUnit(axis)));
+      document.querySelector("#winner-metrics").append(item);
+      return [axis, value];
     }));
     const formatMetric = { smart: formatSmart, fast: formatTime, cheap: formatCost };
     const expandedWhy = new Set();
     let flashTop = false;
 
     function renderSummary(top) {
-      summarySwatch.style.background = top ? variantsById.get(top.id).color : "";
-      summaryName.textContent = top ? top.name : t("summaryEmpty");
-      summaryCreator.textContent = top ? top.creator : "";
+      winnerSwatches.forEach((swatch) => { swatch.style.background = top ? variantsById.get(top.id).color : ""; });
+      winnerNames.forEach((name) => { name.textContent = top ? top.name : t("summaryEmpty"); });
+      winnerCreators.forEach((creator) => { creator.textContent = top ? top.creator : ""; });
       AXES.forEach((axis) => {
-        summaryAxes[axis].label.textContent = t("allocationPart", { axis: AXIS_LABELS[axis], value: formatPower(allocation[axis]) });
-        summaryAxes[axis].value.textContent = top ? formatMetric[axis](top.metrics[axis]) : t("emptyValue");
+        summaryValues[axis].textContent = top ? formatMetric[axis](top.metrics[axis]) : t("emptyValue");
+        winnerValues[axis].textContent = top ? formatAmount(top.metrics[axis]) : t("emptyValue");
       });
     }
 
@@ -1452,7 +1203,7 @@ __RANKING_MODULE__
       return value.toFixed(3);
     }
 
-    function formatDifference(value) {
+    function formatAmount(value) {
       return String(value >= 1000 ? Math.round(value) : Number(value.toPrecision(3)));
     }
 
@@ -1465,8 +1216,8 @@ __RANKING_MODULE__
           : (higherIsBetter ? "whyDifferenceLowerWorse" : "whyDifferenceLowerBetter");
       const item = htmlElement("li", {}, t(key, {
         axis: AXIS_LABELS[axis],
-        amount: formatDifference(Math.abs(difference)),
-        unit: definition.unit.replaceAll("-", " "),
+        amount: formatAmount(Math.abs(difference)),
+        unit: metricUnit(axis),
       }));
       if (!considered) item.append(htmlElement("span", { class: "why-off" }, t("whyNotConsidered")));
       return item;
@@ -1478,11 +1229,7 @@ __RANKING_MODULE__
       const list = htmlElement("ul");
       AXES.forEach((axis) => {
         const item = htmlElement("li");
-        item.append(htmlElement("span", { class: "why-axis" }, t("whyAxis", {
-          axis: AXIS_LABELS[axis],
-          power: formatPower(allocation[axis]),
-          total: TOTAL_POWER,
-        })));
+        item.append(htmlElement("span", { class: "why-axis" }, AXIS_LABELS[axis]));
         if (!axes.includes(axis)) {
           item.append(htmlElement("span", { class: "why-off" }, t("whyNotConsidered")));
         } else {
@@ -1584,7 +1331,6 @@ __RANKING_MODULE__
 
     const map = document.querySelector(".map");
     const marker = document.querySelector("#marker");
-    const allocationLine = document.querySelector("#allocation");
     let press = null;
 
     function writeHash() {
@@ -1593,7 +1339,6 @@ __RANKING_MODULE__
     }
 
     function render() {
-      allocationLine.textContent = describeAllocation(allocation);
       const point = allocationPoint(allocation);
       marker.setAttribute("transform", `translate(${point.x} ${point.y})`);
       cells.forEach((cell) => {
@@ -1601,7 +1346,6 @@ __RANKING_MODULE__
         cell.group.classList.toggle("active", active);
         cell.group.setAttribute("aria-pressed", String(active));
       });
-      renderChipState();
       renderTable();
       if (!press) writeHash();
     }
@@ -1656,9 +1400,9 @@ __RANKING_MODULE__
 
     map.addEventListener("pointerdown", (event) => {
       if (!event.isPrimary || event.button !== 0) return;
-      const pin = event.target.closest(".preset-dot");
-      press = { x: event.clientX, y: event.clientY, dragging: false, pin: pin && Number(pin.dataset.preset) };
-      if (pin) return;
+      event.preventDefault();
+      press = { x: event.clientX, y: event.clientY, dragging: false };
+      if (marker.contains(event.target)) return;
       const cell = cells.find((candidate) => candidate.group === event.target.closest(".hex"));
       if (!cell) return;
       focusCell(cell);
@@ -1670,26 +1414,12 @@ __RANKING_MODULE__
       if (!press.dragging && Math.hypot(event.clientX - press.x, event.clientY - press.y) <= 6) return;
       press.dragging = true;
       const next = pointerAllocation(event);
-      if (press.pin !== null) {
-        const preset = presets()[press.pin];
-        if (!sameAllocation(next, preset.allocation)) {
-          movePreset(preset, next);
-          renderPresets(false);
-        }
-      }
       if (!sameAllocation(next, allocation)) setAllocation(next);
     });
 
     ["pointerup", "pointercancel"].forEach((type) => window.addEventListener(type, (event) => {
       if (!press || !event.isPrimary) return;
-      const { pin, dragging } = press;
       press = null;
-      if (pin !== null && dragging) {
-        writePresets();
-        renderPresets();
-      } else if (pin !== null && type === "pointerup") {
-        setAllocation({ ...presets()[pin].allocation });
-      }
       writeHash();
     }));
 
@@ -1748,7 +1478,7 @@ __RANKING_MODULE__
       writeCreators();
       renderCreators();
       assignWinners();
-      renderPresets();
+      placeRegionLabels();
       render();
     }
 
@@ -1774,7 +1504,7 @@ __RANKING_MODULE__
           return paragraph(t("explainMetric", {
             axis: AXIS_LABELS[axis],
             task: definition.task,
-            unit: definition.unit.replaceAll("-", " "),
+            unit: metricUnit(axis),
             better: t(definition.better === "higher" ? "betterHigher" : "betterLower"),
           }), definition.methodologyUrl, t("methodologyLink"));
         }),
@@ -1795,7 +1525,7 @@ __RANKING_MODULE__
 
     renderCreators();
     assignWinners();
-    renderPresets();
+    placeRegionLabels();
     render();
   </script>
 </body>

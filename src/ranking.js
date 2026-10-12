@@ -2,13 +2,6 @@ export const AXES = ["smart", "fast", "cheap"];
 export const TOTAL_POWER = 12;
 export const POWER_STEP = 0.25;
 
-export const DEFAULT_PRESETS = {
-  overall: { smart: 7.25, fast: 3.25, cheap: 1.5 },
-  fast: { smart: 5, fast: 5.25, cheap: 1.75 },
-  smart: { smart: 8, fast: 2.25, cheap: 1.75 },
-  cheap: { smart: 1.25, fast: 1, cheap: 9.75 },
-};
-
 function noWorse(left, right, axis) {
   return axis === "smart" ? left.metrics[axis] >= right.metrics[axis] : left.metrics[axis] <= right.metrics[axis];
 }
@@ -38,15 +31,6 @@ export function isPowerAllocation(value) {
 
 export function enabledAxes(allocation) {
   return AXES.filter((axis) => allocation[axis] > 0);
-}
-
-export function transferPower(allocation, donor, target) {
-  if (donor === target || allocation[donor] < POWER_STEP) return allocation;
-  return {
-    ...allocation,
-    [donor]: allocation[donor] - POWER_STEP,
-    [target]: allocation[target] + POWER_STEP,
-  };
 }
 
 function quantile(sorted, probability) {

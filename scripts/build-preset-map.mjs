@@ -180,6 +180,7 @@ function mapData(catalog) {
       id: variant.id,
       name: variant.displayName,
       creator: variant.creator,
+      ...(variant.reasoning ? { reasoning: variant.reasoning.label } : {}),
       ...(variant.provenance?.releaseDate ? { releaseDate: variant.provenance.releaseDate } : {}),
       metrics: {
         smart: variant.metrics.smart,
