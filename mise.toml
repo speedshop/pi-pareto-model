@@ -8,7 +8,13 @@ run = "npm run check"
 
 [tasks.build]
 description = "Build the page from a catalog URL (default: the public DeepSWE catalog)"
-run = 'node scripts/build-preset-map.mjs --url {{option(name="url", default="https://raw.githubusercontent.com/speedshop/ds-catalog-digest/main/catalog/model-selection-catalog.json")}} --output {{option(name="output", default="preset-map.html")}}{% if flag(name="allow-restricted") == "true" %} --allow-restricted{% endif %}'
+usage = '''
+flag "--url <url>" default="https://raw.githubusercontent.com/speedshop/ds-catalog-digest/main/catalog/model-selection-catalog.json"
+flag "--output <output>" default="preset-map.html"
+flag "--strings <strings>"
+flag "--allow-restricted"
+'''
+run = 'node scripts/build-preset-map.mjs --url "$usage_url" --output "$usage_output"${usage_strings:+ --strings "$usage_strings"}${usage_allow_restricted:+ --allow-restricted}'
 
 [tasks."build:aa"]
 description = "Build a private page from the Artificial Analysis catalog via gh"

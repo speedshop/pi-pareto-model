@@ -15,6 +15,7 @@ describe("preset map build", () => {
 
     expect(html).not.toContain("__PRESET_MAP_DATA__");
     expect(html).not.toContain("__RANKING_MODULE__");
+    expect(html).not.toContain("__STRINGS__");
     expect(html).toContain("function rankVariants(");
     expect(html).not.toMatch(/^export /m);
     const data = JSON.parse(html.match(/const mapData = (.*);\n/)![1]!);

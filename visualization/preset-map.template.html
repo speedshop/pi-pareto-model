@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pareto model triangle</title>
+  <title data-i18n="pageTitle"></title>
   <style>
     :root {
       --paper: #f5f3ee;
@@ -126,15 +126,35 @@
       vector-effect: non-scaling-stroke;
     }
 
-    .preset-dot circle {
-      fill: var(--paper);
-      stroke: var(--ink);
-      stroke-width: 2;
-    }
-
     .preset-dot { cursor: pointer; }
 
-    .preset-dot.custom circle { stroke-dasharray: 2 2; }
+    .preset-symbol {
+      fill: var(--ink);
+      stroke: var(--paper);
+      stroke-width: 2.5;
+    }
+
+    .preset-symbol.hollow {
+      fill: var(--paper);
+      stroke: var(--ink);
+    }
+
+    .preset-label {
+      font-size: 12px;
+      font-weight: 800;
+      pointer-events: none;
+      text-rendering: geometricPrecision;
+    }
+
+    .preset-label rect {
+      fill: var(--paper);
+      stroke: var(--rule);
+    }
+
+    .preset-label text {
+      fill: var(--ink);
+      dominant-baseline: central;
+    }
 
     #marker circle.outer {
       fill: none;
@@ -264,9 +284,25 @@
     .chip-group { display: inline-flex; }
 
     .chip {
+      display: inline-flex;
+      gap: 5px;
+      align-items: center;
       padding: 4px 11px;
       font-size: 0.78rem;
       font-weight: 800;
+    }
+
+    .chip-symbol {
+      width: 0.8em;
+      height: 0.8em;
+      overflow: visible;
+      fill: currentColor;
+    }
+
+    .chip-symbol.hollow {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
     }
 
     .chip[aria-pressed="true"] {
@@ -318,7 +354,13 @@
       font-weight: 800;
     }
 
-    .results { margin-top: 14px; }
+    .divider {
+      width: 100%;
+      height: 1px;
+      margin: 0;
+      border: 0;
+      background: var(--rule);
+    }
 
     .table-tools {
       display: flex;
@@ -422,6 +464,24 @@
       from { background: rgba(255, 228, 140, 0.85); }
     }
 
+    .explainer {
+      width: min(100% - 32px, 38rem);
+      margin: 30px auto 0;
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+
+    .explainer h2 {
+      margin: 22px 0 6px;
+      font-size: 1rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .explainer p { margin: 0 0 10px; }
+
+    .explainer a { color: inherit; font-weight: 700; }
+
     footer {
       margin-top: 13px;
       color: #7b8088;
@@ -491,13 +551,14 @@
       body { font-size: 14px; }
       main { padding-right: 0; padding-left: 0; }
       header, footer { padding: 0 12px; }
-      header .wide { display: none; }
       header .narrow { display: block; font-size: 0.875rem; }
       #labels { visibility: hidden; }
       .legend { display: flex; }
       .summary { display: grid; }
       .hex polygon { stroke-width: 0.75; }
-      .preset-dot circle { r: 12px; }
+      .preset-symbol { transform: scale(2.3); }
+      .preset-label { visibility: hidden; }
+      .explainer { font-size: 14px; }
       #marker circle { r: 14px; }
       .axis-row { font-size: 0.875rem; }
       .axis-row .name { font-size: 0.75rem; }
@@ -537,15 +598,18 @@
 <body>
   <main>
     <header>
-      <h1>The Pareto frontier, power by power.</h1>
-      <p class="wide">Each edge runs 12 whole-unit steps from one pure pole to the next: 13 hexagons per edge, 91 in all. Each hexagon's color names the top-ranked frontier model for its allocation.</p>
-      <p class="narrow">Tap or drag the triangle to set your priorities.</p>
+      <h1 data-i18n="heading"></h1>
+      <p class="narrow" data-i18n="mobileHint"></p>
     </header>
 
     <svg class="map" viewBox="0 0 800 700" role="group" aria-labelledby="map-title map-description">
-      <title id="map-title">Pareto model triangle</title>
-      <desc id="map-description">A triangular field of hexagons. Each corner puts all 12 power units on Smart, Time, or Cost. Each colored region names the top-ranked frontier model for its allocations. Use the arrow keys to move between hexagons and Enter to choose one.</desc>
+      <title id="map-title" data-i18n="mapTitle"></title>
+      <desc id="map-description" data-i18n="mapDescription"></desc>
       <defs>
+        <symbol id="preset-circle" viewBox="-10 -10 20 20" overflow="visible"><circle r="8" /></symbol>
+        <symbol id="preset-triangle" viewBox="-10 -10 20 20" overflow="visible"><path d="M0 -10 L8.7 5 L-8.7 5 Z" /></symbol>
+        <symbol id="preset-diamond" viewBox="-10 -10 20 20" overflow="visible"><path d="M0 -9.5 L9.5 0 L0 9.5 L-9.5 0 Z" /></symbol>
+        <symbol id="preset-square" viewBox="-10 -10 20 20" overflow="visible"><rect x="-7" y="-7" width="14" height="14" /></symbol>
         <clipPath id="triangle-clip">
           <path d="M400 70 L72 636 L728 636 Z" />
         </clipPath>
@@ -570,73 +634,74 @@
 
       <g class="pole" transform="translate(364 22)">
         <rect width="72" height="31" rx="15.5" />
-        <text x="36" y="21">TIME</text>
+        <text x="36" y="21" data-i18n="poleTime"></text>
       </g>
       <g class="pole" transform="translate(9 646)">
         <rect width="84" height="31" rx="15.5" />
-        <text x="42" y="21">SMART</text>
+        <text x="42" y="21" data-i18n="poleSmart"></text>
       </g>
       <g class="pole" transform="translate(707 646)">
         <rect width="76" height="31" rx="15.5" />
-        <text x="38" y="21">COST</text>
+        <text x="38" y="21" data-i18n="poleCost"></text>
       </g>
     </svg>
 
-    <ol class="legend" id="legend" aria-label="Region key"></ol>
+    <ol class="legend" id="legend" data-i18n-aria-label="legendLabel"></ol>
 
-    <section class="panel controls" aria-label="Power Allocation">
+    <section class="panel controls">
       <div>
-        <p class="eyebrow" id="allocation-title">Power Allocation · 12 units</p>
+        <p class="eyebrow" id="allocation-title" data-i18n="allocationHeading"></p>
         <div class="allocation" id="allocation" aria-labelledby="allocation-title"></div>
-        <p class="caption" id="allocation-rule">+ takes ¼ unit from the largest other axis. − gives ¼ unit to the largest other axis.</p>
+        <p class="caption" id="allocation-rule" data-i18n="donorRule"></p>
       </div>
       <div>
-        <p class="eyebrow">Presets</p>
-        <p class="caption">Dots on the triangle mark each preset.</p>
+        <p class="eyebrow" data-i18n="presetsHeading"></p>
         <div class="presets">
           <div class="presets" id="preset-chips"></div>
           <div class="save">
-            <button type="button" id="save-start">Save preset</button>
+            <button type="button" id="save-start" data-i18n="savePreset"></button>
             <form id="save-preset" hidden>
-              <input id="preset-name" type="text" maxlength="40" required placeholder="Preset name" aria-label="Preset name">
-              <button type="submit">Save</button>
-              <button type="button" id="save-cancel">Cancel</button>
+              <input id="preset-name" type="text" maxlength="40" required data-i18n-placeholder="presetNamePlaceholder" data-i18n-aria-label="presetNameLabel">
+              <button type="submit" data-i18n="save"></button>
+              <button type="button" id="save-cancel" data-i18n="cancel"></button>
             </form>
           </div>
         </div>
       </div>
+      <hr class="divider">
+      <div>
+        <div class="table-tools">
+          <input id="search" type="search" data-i18n-placeholder="filterPlaceholder" data-i18n-aria-label="filterLabel">
+          <label><input id="show-dominated" type="checkbox"> <span data-i18n="showDominated"></span></label>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <caption id="table-caption" aria-live="polite"></caption>
+            <thead>
+              <tr>
+                <th class="rank" scope="col" data-i18n="columnRank"></th>
+                <th scope="col" data-i18n="columnModel"></th>
+                <th scope="col" data-i18n="columnSmart"></th>
+                <th scope="col" data-i18n="columnTime"></th>
+                <th scope="col" data-i18n="columnCost"></th>
+                <th scope="col" class="regret" data-i18n="columnRegret"></th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
-    <section class="panel results" aria-label="Ranked models">
-      <div class="table-tools">
-        <input id="search" type="search" placeholder="Filter by model or creator" aria-label="Filter by model or creator">
-        <label><input id="show-dominated" type="checkbox"> Show dominated</label>
-      </div>
-      <div class="table-scroll">
-        <table>
-          <caption id="table-caption" aria-live="polite"></caption>
-          <thead>
-            <tr>
-              <th class="rank" scope="col">#</th>
-              <th scope="col">Model</th>
-              <th scope="col">Smart</th>
-              <th scope="col">Time</th>
-              <th scope="col">Cost</th>
-              <th scope="col" class="regret">Worst regret</th>
-            </tr>
-          </thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
-    </section>
+    <article class="explainer" id="explainer"></article>
 
     <footer>
-      Full Catalog, Reference Task Cost, Pareto frontier over powered axes, then interquartile minimax regret.<br>
+      <span data-i18n="footerMethod"></span><br>
       <span id="source-note"></span>
     </footer>
   </main>
 
-  <div class="summary" role="status" aria-live="off" aria-label="Current allocation and top model">
+  <div class="summary" role="status" aria-live="off" data-i18n-aria-label="summaryLabel">
     <p class="model"><span class="swatch" id="summary-swatch"></span><span><span class="name" id="summary-name"></span> <span class="creator" id="summary-creator"></span></span></p>
     <div class="summary-axes" id="summary-axes"></div>
   </div>
@@ -645,10 +710,27 @@
 __RANKING_MODULE__
 
     const mapData = __PRESET_MAP_DATA__;
+    const strings = __STRINGS__;
     const { catalog, variants } = mapData;
-    const AXIS_LABELS = { smart: "Smart", fast: "Time", cheap: "Cost" };
+
+    function t(key, vars = {}) {
+      const fillIn = (text) => text.replace(/\{(\w+)\}/g, (match, name) => vars[name] ?? match);
+      return Array.isArray(strings[key]) ? strings[key].map(fillIn) : fillIn(strings[key]);
+    }
+
+    document.querySelectorAll("[data-i18n]").forEach((element) => {
+      element.textContent = t(element.dataset.i18n);
+    });
+    ["placeholder", "aria-label"].forEach((attribute) => {
+      document.querySelectorAll(`[data-i18n-${attribute}]`).forEach((element) => {
+        element.setAttribute(attribute, t(element.getAttribute(`data-i18n-${attribute}`)));
+      });
+    });
+
+    const AXIS_LABELS = { smart: t("axisSmart"), fast: t("axisTime"), cheap: t("axisCost") };
     const HASH_KEYS = { smart: "s", fast: "t", cheap: "c" };
-    const PRESET_LABELS = { overall: "Overall", fast: "Fast", smart: "Smart", cheap: "Cheap" };
+    const PRESET_LABELS = { overall: t("presetOverall"), fast: t("presetFast"), smart: t("presetSmart"), cheap: t("presetCheap") };
+    const PRESET_SHAPES = { overall: "circle", fast: "triangle", smart: "diamond", cheap: "square" };
     const STORAGE_KEY = "pareto-model-presets";
     const triangle = {
       smart: { x: 72, y: 636 },
@@ -752,7 +834,8 @@ __RANKING_MODULE__
     }
 
     function describeAllocation(allocation) {
-      return AXES.map((axis) => `${AXIS_LABELS[axis]} ${formatPower(allocation[axis])}`).join(" · ");
+      return AXES.map((axis) => t("allocationPart", { axis: AXIS_LABELS[axis], value: formatPower(allocation[axis]) }))
+        .join(t("listSeparator"));
     }
 
     function sameAllocation(left, right) {
@@ -780,10 +863,10 @@ __RANKING_MODULE__
           class: "hex",
           tabindex: "-1",
           role: "button",
-          "aria-label": `${describeAllocation(allocation)}: ${winner.name}`,
+          "aria-label": t("hexLabel", { allocation: describeAllocation(allocation), model: winner.name }),
         });
         const title = svgElement("title");
-        title.textContent = `${winner.name} — ${describeAllocation(allocation)}`;
+        title.textContent = t("hexTitle", { allocation: describeAllocation(allocation), model: winner.name });
         group.append(title, svgElement("polygon", {
           points: hexPoints(center, radius + 0.6),
           fill: winner.color,
@@ -876,17 +959,12 @@ __RANKING_MODULE__
       return left.left < right.right && right.left < left.right && left.top < right.bottom && right.top < left.bottom;
     }
 
-    const placedLabels = [
-      ...Object.values(DEFAULT_PRESETS).map((preset) => {
-        const point = allocationPoint(preset);
-        return { left: point.x - 6, right: point.x + 6, top: point.y - 6, bottom: point.y + 6 };
-      }),
-      ...[...document.querySelectorAll(".pole")].map((pole) => {
-        const { e, f } = pole.transform.baseVal.consolidate().matrix;
-        const box = pole.getBBox();
-        return { left: e + box.x, right: e + box.x + box.width, top: f + box.y, bottom: f + box.y + box.height };
-      }),
-    ];
+    const poleBounds = [...document.querySelectorAll(".pole")].map((pole) => {
+      const { e, f } = pole.transform.baseVal.consolidate().matrix;
+      const box = pole.getBBox();
+      return { left: e + box.x, right: e + box.x + box.width, top: f + box.y, bottom: f + box.y + box.height };
+    });
+    let placedLabels = [];
 
     function measuredLabel(winner, lines, layout) {
       const label = svgElement("g", {
@@ -947,10 +1025,16 @@ __RANKING_MODULE__
       }
     }
 
-    connectedRegions()
+    const labelledRegions = connectedRegions()
       .filter((region) => region.length > 1)
-      .sort((left, right) => right.length - left.length)
-      .forEach(placeLabel);
+      .sort((left, right) => right.length - left.length);
+
+    function placeRegionLabels(obstacles) {
+      labels.replaceChildren();
+      legend.replaceChildren();
+      placedLabels = [...obstacles, ...poleBounds];
+      labelledRegions.forEach(placeLabel);
+    }
 
     function readCustomPresets() {
       try {
@@ -985,8 +1069,17 @@ __RANKING_MODULE__
 
     function presets() {
       return [
-        ...Object.entries(DEFAULT_PRESETS).map(([key, value]) => ({ name: PRESET_LABELS[key], allocation: value, builtIn: true })),
-        ...customPresets.map((preset) => ({ ...preset, builtIn: false })),
+        ...Object.entries(DEFAULT_PRESETS).map(([key, value]) => ({
+          name: PRESET_LABELS[key],
+          allocation: value,
+          builtIn: true,
+          shape: PRESET_SHAPES[key],
+        })),
+        ...customPresets.map((preset, index) => ({
+          ...preset,
+          builtIn: false,
+          shape: Object.values(PRESET_SHAPES)[index % 4],
+        })),
       ];
     }
 
@@ -1006,16 +1099,16 @@ __RANKING_MODULE__
       const steppers = htmlElement("div", { class: "steppers" });
       const minus = htmlElement("button", {
         type: "button",
-        "aria-label": `Decrease ${AXIS_LABELS[axis]} by a quarter unit`,
+        "aria-label": t("decreaseLabel", { axis: AXIS_LABELS[axis] }),
         "aria-describedby": "allocation-rule",
-        title: "Give ¼ unit to the largest other axis",
-      }, "−");
+        title: t("decreaseTitle"),
+      }, t("decrease"));
       const plus = htmlElement("button", {
         type: "button",
-        "aria-label": `Increase ${AXIS_LABELS[axis]} by a quarter unit`,
+        "aria-label": t("increaseLabel", { axis: AXIS_LABELS[axis] }),
         "aria-describedby": "allocation-rule",
-        title: "Take ¼ unit from the largest other axis",
-      }, "+");
+        title: t("increaseTitle"),
+      }, t("increase"));
       minus.addEventListener("click", () => setAllocation(transferPower(allocation, axis, largestOther(axis))));
       plus.addEventListener("click", () => setAllocation(transferPower(allocation, largestOther(axis), axis)));
       steppers.append(minus, plus);
@@ -1046,25 +1139,54 @@ __RANKING_MODULE__
     function renderPresets() {
       presetDots.replaceChildren();
       presetChips.replaceChildren();
+      const obstacles = [];
       presets().forEach((preset) => {
         const point = allocationPoint(preset.allocation);
         const dot = svgElement("g", {
           class: preset.builtIn ? "preset-dot" : "preset-dot custom",
           role: "img",
-          "aria-label": `${preset.name} preset: ${describeAllocation(preset.allocation)}`,
+          "aria-label": t("presetDotLabel", { name: preset.name, allocation: describeAllocation(preset.allocation) }),
         });
         const title = svgElement("title");
-        title.textContent = `${preset.name} preset`;
-        dot.append(title, svgElement("circle", { cx: point.x, cy: point.y, r: 4.5 }));
+        title.textContent = t("presetDotTitle", { name: preset.name });
+        const symbol = svgElement("g", { transform: `translate(${point.x} ${point.y})` });
+        symbol.append(svgElement("use", {
+          href: `#preset-${preset.shape}`,
+          class: preset.builtIn ? "preset-symbol" : "preset-symbol hollow",
+          x: -8,
+          y: -8,
+          width: 16,
+          height: 16,
+        }));
+        const label = svgElement("g", { class: "preset-label" });
+        const outward = point.x < triangle.fast.x ? -1 : 1;
+        const text = svgElement("text", { x: point.x + outward * 14, y: point.y, "text-anchor": outward < 0 ? "end" : "start" });
+        text.textContent = preset.name;
+        label.append(text);
+        dot.append(title, symbol, label);
         dot.addEventListener("click", () => setAllocation({ ...preset.allocation }));
         presetDots.append(dot);
+        const measured = text.getBBox();
+        const backing = { x: measured.x - 4, y: measured.y - 2, width: measured.width + 8, height: measured.height + 4 };
+        label.prepend(svgElement("rect", { ...backing, rx: 4 }));
+        obstacles.push(
+          { left: point.x - 9, right: point.x + 9, top: point.y - 9, bottom: point.y + 9 },
+          { left: backing.x, right: backing.x + backing.width, top: backing.y, bottom: backing.y + backing.height },
+        );
 
         const group = htmlElement("span", { class: "chip-group" });
         const chip = htmlElement("button", {
           type: "button",
           class: preset.builtIn ? "chip" : "chip has-remove",
           title: describeAllocation(preset.allocation),
-        }, preset.name);
+        });
+        const chipSymbol = svgElement("svg", {
+          class: preset.builtIn ? "chip-symbol" : "chip-symbol hollow",
+          viewBox: "-10 -10 20 20",
+          "aria-hidden": "true",
+        });
+        chipSymbol.append(svgElement("use", { href: `#preset-${preset.shape}`, x: -10, y: -10, width: 20, height: 20 }));
+        chip.append(chipSymbol, preset.name);
         chip.dataset.allocation = JSON.stringify(preset.allocation);
         chip.addEventListener("click", () => setAllocation({ ...preset.allocation }));
         group.append(chip);
@@ -1072,9 +1194,9 @@ __RANKING_MODULE__
           const remove = htmlElement("button", {
             type: "button",
             class: "chip remove",
-            "aria-label": `Remove preset ${preset.name}`,
-            title: `Remove ${preset.name}`,
-          }, "×");
+            "aria-label": t("removePresetLabel", { name: preset.name }),
+            title: t("removePresetTitle", { name: preset.name }),
+          }, t("removePreset"));
           remove.addEventListener("click", () => {
             customPresets = customPresets.filter((custom) => custom.name !== preset.name);
             writeCustomPresets();
@@ -1085,6 +1207,7 @@ __RANKING_MODULE__
         }
         presetChips.append(group);
       });
+      placeRegionLabels(obstacles);
     }
 
     function renderChipState() {
@@ -1119,7 +1242,7 @@ __RANKING_MODULE__
       event.preventDefault();
       const name = presetName.value.trim();
       const builtIn = Object.values(PRESET_LABELS).some((label) => label.toLowerCase() === name.toLowerCase());
-      presetName.setCustomValidity(name === "" ? "Enter a preset name." : builtIn ? `${name} is a built-in preset.` : "");
+      presetName.setCustomValidity(name === "" ? t("errorEmptyName") : builtIn ? t("errorBuiltInName", { name }) : "");
       if (!presetName.reportValidity()) return;
       customPresets = [...customPresets.filter((preset) => preset.name !== name), { name, allocation: { ...allocation } }];
       writeCustomPresets();
@@ -1148,12 +1271,11 @@ __RANKING_MODULE__
 
     function formatTime(seconds) {
       const value = seconds >= 60 ? seconds / 60 : seconds;
-      const suffix = seconds >= 60 ? "m" : "s";
-      return `${value < 10 ? value.toFixed(1) : Math.round(value)}${suffix}`;
+      return t(seconds >= 60 ? "timeMinutes" : "timeSeconds", { value: value < 10 ? value.toFixed(1) : Math.round(value) });
     }
 
     function formatCost(value) {
-      return `$${value.toFixed(3)}`;
+      return t("cost", { value: value.toFixed(3) });
     }
 
     function metricCell(range, value, text) {
@@ -1189,7 +1311,7 @@ __RANKING_MODULE__
       summaryName.textContent = top.name;
       summaryCreator.textContent = top.creator;
       AXES.forEach((axis) => {
-        summaryAxes[axis].label.textContent = `${AXIS_LABELS[axis]} ${formatPower(allocation[axis])}`;
+        summaryAxes[axis].label.textContent = t("allocationPart", { axis: AXIS_LABELS[axis], value: formatPower(allocation[axis]) });
         summaryAxes[axis].value.textContent = formatMetric[axis](top.metrics[axis]);
       });
     }
@@ -1209,9 +1331,8 @@ __RANKING_MODULE__
         || variant.creator.toLowerCase().includes(query));
       const ranges = metricRanges(shown.map(({ variant }) => variant));
 
-      tableCaption.textContent = `${describeAllocation(allocation)} — ${ranking.length} frontier ${ranking.length === 1 ? "model" : "models"}`
-        + (ranking[0] ? `, top: ${ranking[0].name}` : "")
-        + (query ? ` · ${shown.length} shown` : "");
+      const caption = t(ranking.length === 1 ? "captionOne" : "caption", { count: ranking.length, top: ranking[0].name });
+      tableCaption.textContent = query ? t("captionShown", { caption, shown: shown.length }) : caption;
       renderSummary(ranking[0]);
 
       rowsBody.replaceChildren(...shown.map(({ variant, rank, dominator }) => {
@@ -1221,12 +1342,12 @@ __RANKING_MODULE__
         const swatch = htmlElement("span", { class: "swatch", style: `background:${variantsById.get(variant.id).color}` });
         const names = htmlElement("span");
         names.append(htmlElement("span", { class: "name" }, variant.name), " ", htmlElement("span", { class: "creator" }, variant.creator));
-        if (dominator) names.append(htmlElement("span", { class: "dominator" }, `dominated by ${dominator.name}`));
+        if (dominator) names.append(htmlElement("span", { class: "dominator" }, t("dominatedBy", { name: dominator.name })));
         model.append(swatch, names);
         const modelCell = htmlElement("td");
         modelCell.append(model);
         row.append(
-          htmlElement("td", { class: "rank" }, rank ? String(rank) : "—"),
+          htmlElement("td", { class: "rank" }, rank ? String(rank) : t("dominatedRank")),
           modelCell,
           ...AXES.map((axis) => metricCell(ranges[axis], variant.metrics[axis], formatMetric[axis](variant.metrics[axis]))),
           htmlElement("td", { class: "regret" }, variant.ranking.worstRegret.toFixed(3)),
@@ -1363,11 +1484,43 @@ __RANKING_MODULE__
     showDominated.addEventListener("change", renderTable);
     window.addEventListener("hashchange", () => setAllocation(parseHash()));
 
-    document.querySelector("#source-note").textContent = [
-      `${catalog.name} ${catalog.version}`,
-      `generated ${catalog.generatedAt.slice(0, 10)}`,
-      catalog.attribution,
-    ].filter(Boolean).join(" · ");
+    const source = { name: catalog.name, version: catalog.version, date: catalog.generatedAt.slice(0, 10), attribution: catalog.attribution };
+    document.querySelector("#source-note").textContent = t(catalog.attribution ? "footerSourceAttributed" : "footerSource", source);
+
+    function paragraph(text, href, linkText) {
+      const element = htmlElement("p", {}, text);
+      if (href) element.append(" ", htmlElement("a", { href }, linkText));
+      return element;
+    }
+
+    document.querySelector("#explainer").append(...[
+      [t("explainRankingTitle"), t("explainRanking").map((text) => paragraph(text))],
+      [t("explainRegretTitle"), t("explainRegret").map((text) => paragraph(text))],
+      [t("explainMetricsTitle"), [
+        paragraph(t("explainMetricsIntro")),
+        ...AXES.map((axis) => {
+          const definition = catalog.metricDefinitions[axis];
+          return paragraph(t("explainMetric", {
+            axis: AXIS_LABELS[axis],
+            task: definition.task,
+            unit: definition.unit.replaceAll("-", " "),
+            better: t(definition.better === "higher" ? "betterHigher" : "betterLower"),
+          }), definition.methodologyUrl, t("methodologyLink"));
+        }),
+      ]],
+      [t("explainDataTitle"), [
+        paragraph(
+          [t("explainData", source), catalog.attribution && t("explainAttribution", source)].filter(Boolean).join(" "),
+          catalog.termsUrl,
+          t("termsLink"),
+        ),
+        paragraph(t("explainEmbedded")),
+      ]],
+    ].map(([title, paragraphs]) => {
+      const section = htmlElement("section");
+      section.append(htmlElement("h2", {}, title), ...paragraphs);
+      return section;
+    }));
 
     renderPresets();
     render();

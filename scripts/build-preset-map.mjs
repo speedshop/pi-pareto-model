@@ -12,11 +12,18 @@ const ROOT = resolve(import.meta.dirname, "..");
 const DEFAULT_OUTPUT = join(ROOT, "preset-map.html");
 const DEFAULT_TEMPLATE = join(ROOT, "visualization", "preset-map.template.html");
 const RANKING_MODULE = join(ROOT, "src", "ranking.js");
+const DEFAULT_STRINGS = join(ROOT, "visualization", "strings", "cloddish.json");
 const SCHEMAS = new Map([
   [1, join(ROOT, "schema", "model-selection-catalog.schema.json")],
   [2, join(ROOT, "schema", "model-metrics-catalog.schema.json")],
 ]);
-const VALUE_OPTIONS = { "--catalog": "catalog", "--config": "config", "--output": "output", "--template": "template" };
+const VALUE_OPTIONS = {
+  "--catalog": "catalog",
+  "--config": "config",
+  "--output": "output",
+  "--template": "template",
+  "--strings": "strings",
+};
 
 function parseArguments(argv) {
   const options = { output: DEFAULT_OUTPUT, template: DEFAULT_TEMPLATE };
@@ -47,6 +54,7 @@ Options:
   --config PATH         Read the catalog source from this config
   --output PATH         HTML output (default: preset-map.html)
   --template PATH       HTML template override
+  --strings PATH        Override page text with keys from this JSON file
   --allow-restricted    Build from a catalog that does not allow redistribution
   --help                Show this help
 `);
@@ -145,13 +153,28 @@ function checkRedistribution(catalog, allowRestricted) {
   ].join("\n"));
 }
 
+async function loadStrings(path) {
+  const strings = JSON.parse(await readFile(DEFAULT_STRINGS, "utf8"));
+  if (!path) return strings;
+  const overrides = JSON.parse(await readFile(path, "utf8"));
+  const unknown = Object.keys(overrides).filter((key) => !Object.hasOwn(strings, key));
+  if (unknown.length > 0) throw new Error(`Unknown string keys in ${path}: ${unknown.join(", ")}`);
+  return { ...strings, ...overrides };
+}
+
 function mapData(catalog) {
+  const { metricDefinitions } = catalog.catalog;
   return {
     catalog: {
       name: catalog.catalog.name,
       version: catalog.catalog.version,
       generatedAt: catalog.catalog.generatedAt,
       attribution: catalog.catalog.distribution.attribution,
+      termsUrl: catalog.catalog.distribution.termsUrl,
+      metricDefinitions: Object.fromEntries(["smart", "fast", "cheap"].map((axis) => {
+        const { task, unit, better, methodologyUrl } = metricDefinitions[axis];
+        return [axis, { task, unit, better, methodologyUrl }];
+      })),
     },
     variants: catalog.variants.map((variant) => ({
       id: variant.id,
@@ -179,15 +202,20 @@ async function main() {
     return;
   }
 
-  const [catalog, template, rankingModule] = await Promise.all([
+  const [strings, catalog, template, rankingModule] = await Promise.all([
+    loadStrings(options.strings),
     loadCatalog(options),
     readFile(options.template, "utf8"),
     readFile(RANKING_MODULE, "utf8"),
   ]);
   await validateCatalog(catalog);
   checkRedistribution(catalog, options.allowRestricted);
-  const data = JSON.stringify(mapData(catalog)).replaceAll("<", "\\u003c");
-  const html = fill(fill(template, "__RANKING_MODULE__", rankingModule.replace(/^export /gm, "")), "__PRESET_MAP_DATA__", data);
+  const embed = (value) => JSON.stringify(value).replaceAll("<", "\\u003c");
+  const html = [
+    ["__RANKING_MODULE__", rankingModule.replace(/^export /gm, "")],
+    ["__PRESET_MAP_DATA__", embed(mapData(catalog))],
+    ["__STRINGS__", embed(strings)],
+  ].reduce((page, [marker, value]) => fill(page, marker, value), template);
   await writeFile(options.output, html, "utf8");
   console.log(`Built ${options.output} with ${catalog.variants.length} variants from ${catalog.catalog.name}.`);
 }
