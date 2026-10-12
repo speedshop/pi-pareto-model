@@ -660,7 +660,7 @@
           <div class="presets" id="preset-chips"></div>
           <div class="save">
             <button type="button" id="save-start" data-i18n="savePreset"></button>
-            <form id="save-preset" hidden>
+            <form id="save-preset" hidden novalidate>
               <input id="preset-name" type="text" maxlength="40" required data-i18n-placeholder="presetNamePlaceholder" data-i18n-aria-label="presetNameLabel">
               <button type="submit" data-i18n="save"></button>
               <button type="button" id="save-cancel" data-i18n="cancel"></button>
@@ -1140,10 +1140,12 @@ __RANKING_MODULE__
       presetDots.replaceChildren();
       presetChips.replaceChildren();
       const obstacles = [];
+      const nameBoxes = [];
+      const { width, height } = map.viewBox.baseVal;
       presets().forEach((preset) => {
         const point = allocationPoint(preset.allocation);
         const dot = svgElement("g", {
-          class: preset.builtIn ? "preset-dot" : "preset-dot custom",
+          class: "preset-dot",
           role: "img",
           "aria-label": t("presetDotLabel", { name: preset.name, allocation: describeAllocation(preset.allocation) }),
         });
@@ -1159,20 +1161,36 @@ __RANKING_MODULE__
           height: 16,
         }));
         const label = svgElement("g", { class: "preset-label" });
-        const outward = point.x < triangle.fast.x ? -1 : 1;
-        const text = svgElement("text", { x: point.x + outward * 14, y: point.y, "text-anchor": outward < 0 ? "end" : "start" });
+        const text = svgElement("text");
         text.textContent = preset.name;
         label.append(text);
         dot.append(title, symbol, label);
         dot.addEventListener("click", () => setAllocation({ ...preset.allocation }));
         presetDots.append(dot);
-        const measured = text.getBBox();
-        const backing = { x: measured.x - 4, y: measured.y - 2, width: measured.width + 8, height: measured.height + 4 };
-        label.prepend(svgElement("rect", { ...backing, rx: 4 }));
-        obstacles.push(
-          { left: point.x - 9, right: point.x + 9, top: point.y - 9, bottom: point.y + 9 },
-          { left: backing.x, right: backing.x + backing.width, top: backing.y, bottom: backing.y + backing.height },
-        );
+        const backingAt = (placement) => {
+          Object.entries(placement).forEach(([key, value]) => text.setAttribute(key, value));
+          const measured = text.getBBox();
+          return { left: measured.x - 4, right: measured.x + measured.width + 4, top: measured.y - 2, bottom: measured.y + measured.height + 2 };
+        };
+        const inside = (box) => box.left >= 0 && box.right <= width && box.top >= 0 && box.bottom <= height;
+        const outward = point.x < triangle.fast.x ? -1 : 1;
+        const placements = [outward, -outward].map((side) => ({ x: point.x + side * 14, y: point.y, "text-anchor": side < 0 ? "end" : "start" }));
+        if (!inside(backingAt(placements[0]))) placements.reverse();
+        placements.push({ x: point.x, y: point.y - 20, "text-anchor": "middle" }, { x: point.x, y: point.y + 20, "text-anchor": "middle" });
+        const placement = placements.find((candidate) => {
+          const box = backingAt(candidate);
+          return inside(box) && !nameBoxes.some((placed) => intersects(placed, box));
+        }) ?? placements[0];
+        const backing = backingAt(placement);
+        nameBoxes.push(backing);
+        label.prepend(svgElement("rect", {
+          x: backing.left,
+          y: backing.top,
+          width: backing.right - backing.left,
+          height: backing.bottom - backing.top,
+          rx: 4,
+        }));
+        obstacles.push({ left: point.x - 9, right: point.x + 9, top: point.y - 9, bottom: point.y + 9 }, backing);
 
         const group = htmlElement("span", { class: "chip-group" });
         const chip = htmlElement("button", {

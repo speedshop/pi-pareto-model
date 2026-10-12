@@ -3,7 +3,7 @@
   "heading": "Pick a model by what you care about",
   "mobileHint": "Tap or drag the triangle to set your priorities.",
   "mapTitle": "Model triangle",
-  "mapDescription": "A triangle of hexagons. Each corner puts all 12 units on Smart, Time or Cost. Each colour shows the top model for that mix. Use the arrow keys to move between hexagons and Enter to pick one.",
+  "mapDescription": "A triangle of hexagons. Each corner puts all 12 units on Smart, Time or Cost. Each color shows the top model for that mix. Use the arrow keys to move between hexagons and Enter to pick one.",
   "poleSmart": "SMART",
   "poleTime": "TIME",
   "poleCost": "COST",
@@ -60,9 +60,9 @@
   "summaryLabel": "Current allocation and top model",
   "explainRankingTitle": "How the ranking works",
   "explainRanking": [
-    "The page ranks models in two steps. First it drops every model that another model matches or beats on every axis you gave power to. The models left over form the Pareto frontier. An axis with zero power plays no part in this step or the next.",
+    "The page ranks models in two steps. First it drops every model that another model matches or beats on every axis you gave power to and beats on at least one of them. The models left over form the Pareto frontier. An axis with zero power plays no part in this step or the next.",
     "Then it sorts the frontier by interquartile minimax regret, using your allocation as the weights. The model whose worst case is least bad comes first.",
-    "Each hexagon is one way to split the 12 units in whole steps, and its colour is the model that ranks first there. Click or tap a hexagon to use its split. Drag across the triangle to move in quarter units. The table above lists the frontier for the current split. The ring marks the current split, which can sit between hexagons."
+    "Each hexagon is one way to split the 12 units in whole steps, and its color is the model that ranks first there. Click or tap a hexagon to use its split. Drag across the triangle to move in quarter units. The table above lists the frontier for the current split. The ring marks the current split, which can sit between hexagons."
   ],
   "explainRegretTitle": "What regret means",
   "explainRegret": [

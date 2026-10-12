@@ -38,6 +38,7 @@ open preset-map.html
 Pass `--url` to build from a different catalog URL, `--output` to change the output path, `--strings` to change the page text, and `--allow-restricted` to build a private copy from a catalog that forbids redistribution:
 
 ```fish
+mkdir -p tmp
 mise run build --url https://example.com/model-selection-catalog.json --output tmp/example.html
 ```
 
@@ -81,6 +82,7 @@ Git ignores every `preset-map*.html` file except the template.
 Every piece of text on the page comes from `visualization/strings/cloddish.json`, a flat JSON object of keys and strings. To change the text, copy that file, keep only the keys you want to change, edit their values, and pass the copy with `--strings`:
 
 ```fish
+mkdir -p tmp
 cp visualization/strings/cloddish.json tmp/my-strings.json
 mise run build --strings tmp/my-strings.json
 ```
