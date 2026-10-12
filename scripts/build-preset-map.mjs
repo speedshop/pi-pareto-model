@@ -12,7 +12,7 @@ const ROOT = resolve(import.meta.dirname, "..");
 const DEFAULT_OUTPUT = join(ROOT, "preset-map.html");
 const DEFAULT_TEMPLATE = join(ROOT, "visualization", "preset-map.template.html");
 const RANKING_MODULE = join(ROOT, "src", "ranking.js");
-const DEFAULT_STRINGS = join(ROOT, "visualization", "strings", "cloddish.json");
+const DEFAULT_STRINGS = join(ROOT, "visualization", "strings", "claudish.json");
 const SCHEMAS = new Map([
   [1, join(ROOT, "schema", "model-selection-catalog.schema.json")],
   [2, join(ROOT, "schema", "model-metrics-catalog.schema.json")],

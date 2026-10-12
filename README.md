@@ -53,7 +53,7 @@ The build:
 3. Checks that the catalog allows redistribution.
 4. Embeds each variant's id, display name, creator, release date when present, and metrics, plus the catalog's name, version, generation date, attribution, terms URL, and metric definitions.
 5. Inlines the ranking module from `src/ranking.js`.
-6. Embeds the page text from `visualization/strings/cloddish.json`, with any `--strings` overrides applied.
+6. Embeds the page text from `visualization/strings/claudish.json`, with any `--strings` overrides applied.
 7. Writes `preset-map.html` and prints its path, variant count, and catalog name.
 
 ### Options
@@ -79,15 +79,15 @@ Git ignores every `preset-map*.html` file except the template.
 
 ## Change the text
 
-Every piece of text on the page comes from `visualization/strings/cloddish.json`, a flat JSON object of keys and strings. To change the text, copy that file, keep only the keys you want to change, edit their values, and pass the copy with `--strings`:
+Every piece of text on the page comes from `visualization/strings/claudish.json`, a flat JSON object of keys and strings. To change the text, copy that file, keep only the keys you want to change, edit their values, and pass the copy with `--strings`:
 
 ```fish
 mkdir -p tmp
-cp visualization/strings/cloddish.json tmp/my-strings.json
+cp visualization/strings/claudish.json tmp/my-strings.json
 mise run build --strings tmp/my-strings.json
 ```
 
-The build loads `cloddish.json` first and applies your file on top, so missing keys keep their default text. It fails and names the key if your file contains a key that `cloddish.json` lacks. Placeholders such as `{name}` are filled in by the page; keep them in any string you change. The explainer paragraphs are arrays of strings.
+The build loads `claudish.json` first and applies your file on top, so missing keys keep their default text. It fails and names the key if your file contains a key that `claudish.json` lacks. Placeholders such as `{name}` are filled in by the page; keep them in any string you change. The explainer paragraphs are arrays of strings.
 
 ## Catalog configuration
 
