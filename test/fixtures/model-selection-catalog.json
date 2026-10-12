@@ -65,7 +65,7 @@
           "equivalence": "verified"
         }
       ],
-      "provenance": { "fixtureScenario": "smartest metered extreme" }
+      "provenance": { "fixtureScenario": "smartest frontier extreme" }
     },
     {
       "id": "fixture:model:gpt-5-6-sol-medium",
@@ -94,7 +94,7 @@
           "equivalence": "verified"
         }
       ],
-      "provenance": { "fixtureScenario": "current subscription model" }
+      "provenance": { "fixtureScenario": "balanced frontier model" }
     },
     {
       "id": "fixture:model:gpt-5-5-high",
@@ -192,7 +192,7 @@
           "equivalence": "verified"
         }
       ],
-      "provenance": { "fixtureScenario": "equivalent routes in two authenticated providers" }
+      "provenance": { "fixtureScenario": "frontier model between GPT-5.5 medium and low on Smart" }
     },
     {
       "id": "fixture:model:glm-5-2-high",
@@ -215,7 +215,7 @@
           "equivalence": "verified"
         }
       ],
-      "provenance": { "fixtureScenario": "balanced metered model" }
+      "provenance": { "fixtureScenario": "lower-middle frontier model" }
     },
     {
       "id": "fixture:model:deepseek-v4-pro-high",
@@ -238,7 +238,7 @@
           "equivalence": "verified"
         }
       ],
-      "provenance": { "fixtureScenario": "metered frontier model" }
+      "provenance": { "fixtureScenario": "frontier model trading Smart for Time and Cost" }
     },
     {
       "id": "fixture:model:inkling-medium",
@@ -284,7 +284,7 @@
           "equivalence": "verified"
         }
       ],
-      "provenance": { "fixtureScenario": "fast subscription model" }
+      "provenance": { "fixtureScenario": "fast frontier model" }
     },
     {
       "id": "fixture:model:gpt-5-6-luna-medium",
@@ -307,7 +307,7 @@
           "equivalence": "verified"
         }
       ],
-      "provenance": { "fixtureScenario": "selectable Luna subscription route" }
+      "provenance": { "fixtureScenario": "Luna frontier model" }
     },
     {
       "id": "fixture:model:glm-5-2-fast-high",
@@ -330,7 +330,7 @@
           "equivalence": "verified"
         }
       ],
-      "provenance": { "fixtureScenario": "fastest metered frontier model" }
+      "provenance": { "fixtureScenario": "fast low-cost frontier model" }
     },
     {
       "id": "fixture:model:gpt-oss-120b-medium",
@@ -369,7 +369,7 @@
         "cheap": { "kind": "source", "benchmarkVersion": "fixture-cheap-v1" }
       },
       "aliases": [],
-      "provenance": { "fixtureScenario": "unselectable full-catalog model" }
+      "provenance": { "fixtureScenario": "fastest and cheapest frontier extreme" }
     }
   ]
 }

@@ -1,0 +1,25 @@
+[tools]
+node = "22.22.3"
+
+[tasks.test]
+description = "Run the test suite"
+sources = ["src/**/*", "scripts/**/*", "schema/**/*", "test/**/*", "visualization/**/*"]
+run = "npm run check"
+
+[tasks.build]
+description = "Build the page from a catalog URL (default: the public DeepSWE catalog)"
+usage = '''
+flag "--url <url>" default="https://raw.githubusercontent.com/speedshop/ds-catalog-digest/main/catalog/model-selection-catalog.json"
+flag "--output <output>" default="preset-map.html"
+flag "--strings <strings>"
+flag "--allow-restricted"
+'''
+run = 'node scripts/build-preset-map.mjs --url "$usage_url" --output "$usage_output"${usage_strings:+ --strings "$usage_strings"}${usage_allow_restricted:+ --allow-restricted}'
+
+[tasks."build:aa"]
+description = "Build a private page from the Artificial Analysis catalog via gh"
+run = """
+mkdir -p tmp
+gh api repos/speedshop/aa-catalog-digest/contents/catalog/model-selection-catalog.json -H 'Accept: application/vnd.github.raw+json' > tmp/aa-catalog.json
+node scripts/build-preset-map.mjs --catalog tmp/aa-catalog.json --allow-restricted --output preset-map-aa.html
+"""
