@@ -770,42 +770,54 @@ __RANKING_MODULE__
           -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
         ];
       };
-      let fitted = chroma;
-      while (fitted > 0 && linear(fitted).some((channel) => channel < 0 || channel > 1)) fitted -= 0.002;
-      const rgb = linear(Math.max(0, fitted)).map((channel) => Math.round(255 * Math.min(1, Math.max(0,
+      const inGamut = (amount) => linear(amount).every((channel) => channel >= 0 && channel <= 1);
+      let [fitted, ceiling] = inGamut(chroma) ? [chroma, chroma] : [0, chroma];
+      for (let step = 0; step < 12 && fitted < ceiling; step += 1) {
+        const middle = (fitted + ceiling) / 2;
+        if (inGamut(middle)) fitted = middle;
+        else ceiling = middle;
+      }
+      const rgb = linear(fitted).map((channel) => Math.round(255 * Math.min(1, Math.max(0,
         channel <= 0.0031308 ? 12.92 * channel : 1.055 * channel ** (1 / 2.4) - 0.055))));
       const luminance = rgb.map((channel) => {
         const value = channel / 255;
         return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
       }).reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
-      return [`rgb(${rgb.join(", ")})`, luminance > 0.179 ? "#000000" : "#ffffff"];
+      const angle = hue * Math.PI / 180;
+      const lab = [lightness, fitted * Math.cos(angle), fitted * Math.sin(angle)];
+      return [`rgb(${rgb.join(", ")})`, luminance > 0.179 ? "#000000" : "#ffffff", lab];
     }
 
+    const FAMILY_SHADES = [-18, -6, 6, 18].flatMap((offset) => [1, 0.6].flatMap((saturation) => [-0.07, -0.025, 0.025, 0.07].map((lift) => [offset, saturation, lift])));
+
     function assignModelColors(models) {
-      const described = models.map((model) => ({ model, ...modelFamily(model.name) }));
       const families = new Map();
-      described.forEach(({ model, family }) => {
-        families.set(model.creator, new Set([...(families.get(model.creator) ?? []), family]));
-      });
-      const slots = new Map();
-      [...families.keys()].filter((creator) => !(creator in CREATOR_HUES)).sort((left, right) => left.localeCompare(right))
-        .forEach((creator) => {
-          const hash = Array.from(creator).reduce((value, character) =>
-            (Math.imul(value, 31) + character.charCodeAt(0)) >>> 0, 0);
-          slots.set(creator, { slot: hash % 9, rank: [...slots.values()].filter((other) => other.slot === hash % 9).length });
-        });
-      described.forEach(({ model, family, label }) => {
-        const siblings = [...families.get(model.creator)].sort((left, right) => left.localeCompare(right));
-        const index = siblings.indexOf(family);
-        const minor = slots.get(model.creator);
-        const hue = minor ? 35 + minor.slot * 40 + ((minor.rank * 0.618034) % 1 - 0.5) * 24 : CREATOR_HUES[model.creator];
+      models.forEach((model) => {
+        const { family, label } = modelFamily(model.name);
         const level = thinkingLevel(model.reasoning) ?? thinkingLevel(label);
+        const key = `${model.creator}\n${family}`;
         const shade = level === undefined || level === "reasoning" ? 3.5 : THINKING_LEVELS.indexOf(level);
-        [model.color, model.ink] = oklchColor(
-          0.86 + [0, 0.04, -0.04][index % 3] - shade * 0.075,
-          (minor ? 0.1 : 0.16) * [1, 0.5, 0.75][Math.floor(index / 2) % 3],
-          hue + ((index * 0.618034) % 1 - 0.5) * 30,
-        );
+        families.set(key, [...(families.get(key) ?? []), { model, shade }]);
+      });
+      const placed = [];
+      [...families.keys()].sort((left, right) => left.localeCompare(right)).forEach((key) => {
+        const members = families.get(key);
+        const { creator } = members[0].model;
+        const hash = Array.from(creator).reduce((value, character) =>
+          (Math.imul(value, 31) + character.charCodeAt(0)) >>> 0, 0);
+        const [hue, chroma] = creator in CREATOR_HUES ? [CREATOR_HUES[creator], 0.16] : [35 + (hash % 9) * 40, 0.13];
+        const options = FAMILY_SHADES.map(([offset, saturation, lift]) =>
+          members.map(({ shade }) => oklchColor(0.86 + lift - shade * 0.075, chroma * saturation, hue + offset)));
+        const distance = (colors) => colors.reduce((nearest, [, , lab]) => placed.reduce((closest, other) =>
+          Math.min(closest, (lab[0] - other[0]) ** 2 + (lab[1] - other[1]) ** 2 + (lab[2] - other[2]) ** 2), nearest), Infinity);
+        const best = options.reduce((chosen, colors) => {
+          const separation = distance(colors);
+          return separation > chosen.separation ? { colors, separation } : chosen;
+        }, { separation: -1 }).colors;
+        members.forEach(({ model }, index) => {
+          [model.color, model.ink] = best[index];
+          placed.push(best[index][2]);
+        });
       });
     }
 
