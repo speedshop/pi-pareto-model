@@ -1,0 +1,81 @@
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "43 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      deploy: ${{ steps.prepare.outputs.deploy }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22.22.3"
+
+      - name: Fetch catalog and compare with the published deployment
+        id: prepare
+        env:
+          CATALOG_URL: https://raw.githubusercontent.com/speedshop/ds-catalog-digest/main/catalog/model-selection-catalog.json
+          DEPLOYMENT_URL: https://speedshop.github.io/pi-pareto-model/deployment.json
+          SOURCE_COMMIT: ${{ github.sha }}
+          CATALOG_PATH: ${{ runner.temp }}/catalog.json
+          SITE_DIR: ${{ runner.temp }}/site
+          COMPARE: ${{ github.event_name == 'schedule' }}
+        run: node scripts/prepare-pages.mjs
+
+      - name: Install dependencies
+        if: steps.prepare.outputs.deploy == 'true'
+        run: npm ci
+
+      - name: Check
+        if: steps.prepare.outputs.deploy == 'true'
+        run: npm run check
+
+      - name: Build page
+        if: steps.prepare.outputs.deploy == 'true'
+        run: node scripts/build-preset-map.mjs --catalog "$RUNNER_TEMP/catalog.json" --output "$RUNNER_TEMP/site/index.html"
+
+      - name: Upload Pages artifact
+        if: steps.prepare.outputs.deploy == 'true'
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: ${{ runner.temp }}/site
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

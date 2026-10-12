@@ -17,6 +17,7 @@ Data is provided by DeepSWE, though you can substitute in your own source.
 ## Contents
 
 - [Build the page](#build-the-page)
+- [Published page](#published-page)
 - [Catalog configuration](#catalog-configuration)
 - [Change the text](#change-the-text)
 - [Using the page](#using-the-page)
@@ -76,6 +77,22 @@ The built page contains the catalog's metrics. Ship only a page built from a cat
 The build refuses a catalog whose `allowRedistribution` is `false`. It prints the catalog's attribution and terms URL instead. Pass `--allow-restricted` to build a private copy anyway, and do not publish that page.
 
 Git ignores every `preset-map*.html` file except the template.
+
+## Published page
+
+The [Pages workflow](.github/workflows/pages.yml) publishes the page built from the public DeepSWE catalog at <https://speedshop.github.io/pi-pareto-model/>. It never builds from the Artificial Analysis catalog and never passes `--allow-restricted`, so it fails if the DeepSWE catalog stops allowing redistribution. The page carries the catalog's attribution and terms link.
+
+The workflow runs only on `main`:
+
+- **Push.** Every push to `main` checks, builds, and deploys the page. A push that skips CI, such as one marked `[ci skip]`, deploys at the next daily run instead.
+- **Manual.** Running the workflow by hand on `main` always deploys.
+- **Daily.** At 08:43 UTC, the workflow downloads the catalog and reads `deployment.json` from the published site. That file records the SHA-256 of the catalog bytes and the source commit that built the page. When both match, the run skips installing, checking, building, and deploying. Otherwise it deploys.
+
+The workflow downloads the catalog once and builds from those same bytes, so the recorded hash always matches the published page. A run that fails before deploying leaves the published `deployment.json` unchanged, so the next daily run tries again. A missing or unreadable `deployment.json` triggers a deploy. Any other failure to download the catalog or `deployment.json` fails the run instead of deploying stale data.
+
+The site holds only `index.html` and `deployment.json`. Neither is committed.
+
+Before the first deploy, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**. The workflow does not enable Pages itself.
 
 ## Change the text
 
