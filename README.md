@@ -8,7 +8,7 @@ It compares each model variant (model and thinking level combo) with three measu
 - **Time:** Lower values are better.
 - **Cost:** Lower values are better.
 
-The page shows a triangle of power allocations. Each hexagon is colored by the model that ranks first for that allocation. Below the triangle, you can tune the allocation, jump to presets, and read the full ranked frontier.
+The page shows a triangle of power allocations. Each hexagon is colored by the model that ranks first for that allocation. Set the allocation on the triangle by clicking or dragging, or drag a preset's pin to move it. Below the triangle, you can read the current allocation, jump to presets, and read the full ranked frontier.
 
 The page hides any model which is Pareto-dominated by another (e.g., you should never use model X because model Y is as smart and as fast but cheaper). It computes the frontier and the ranking in the browser from an embedded copy of the catalog. It makes no network requests and needs no server.
 
@@ -172,15 +172,13 @@ Each hexagon is one whole-unit Power Allocation. Each edge runs 12 whole-unit st
 
 Click or tap a hexagon to choose its allocation. Keep the pointer pressed and move it more than a few pixels to start a drag, then drag across the triangle to set the allocation continuously: the page snaps each measure to quarter units totalling 12 and updates the table as you move. Dragging past an edge clamps to the triangle. The URL hash updates once, when you release. The ring marks the current allocation, which can sit between hexagons at quarter-unit positions.
 
+Pressing on a Preset pin acts on the pin instead of the hexagon under it. See [Presets](#presets).
+
 To use the keyboard, tab to the triangle, move between hexagons with the arrow keys, and press Enter or Space to choose one.
 
-### Power Allocation
+### Priorities
 
-The card below the triangle shows the Smart, Time, and Cost units with a slider for each. The three values always total 12.
-
-- **+** takes one quarter unit from the largest other measure.
-- **−** gives one quarter unit to the largest other measure.
-- Moving a slider repeats the same rule in quarter units until the measure reaches the slider's value.
+The card below the triangle starts with **Priorities**, a line that shows the current allocation, for example `Smart 7.25 · Time 3.25 · Cost 1.5`. The three values always total 12. Change the allocation on the triangle or with a Preset; the line only reports it.
 
 A measure with zero power does not affect Pareto domination or ranking. Its column stays visible.
 
@@ -195,9 +193,19 @@ The page has these built-in Presets. The values use Smart/Time/Cost order:
 | Smart | `8/2.25/1.75` | Give strong priority to Smart |
 | Cheap | `1.25/1/9.75` | Give the most power to Cost |
 
-Each built-in Preset has its own symbol: Overall is a circle, Fast a triangle, Smart a diamond, and Cheap a square. Saved Presets cycle through hollow versions of the same shapes in the order you saved them. Each chip shows its Preset's symbol, and the triangle shows the same symbol at the Preset's allocation with its name beside it. Click a chip or a symbol to jump to that allocation.
+Each Preset is a pin on the triangle. Each built-in Preset has its own symbol: Overall is a circle, Fast a triangle, Smart a diamond, and Cheap a square. Saved Presets cycle through hollow versions of the same shapes in the order you saved them. Each chip shows its Preset's symbol, and the triangle shows the same symbol at the Preset's allocation with its name beside it. Click a chip, or click or tap a pin, to jump to that allocation.
 
-Click **Save preset**, enter a name, and press Enter or click **Save** to keep the current allocation. Press Escape or click **Cancel** to close the name field without saving. Built-in Preset names are rejected. The browser stores saved Presets in `localStorage`, so they stay on that browser only. Click **×** on a saved Preset to remove it.
+To move a Preset, press on its pin and drag it more than a few pixels. The pin snaps to quarter units totalling 12 and stays inside the triangle. The current allocation moves with the pin, so the ring, the table, and the URL hash follow it. The hash updates once, when you release. Region labels move out of the way of the pin's new position after you release.
+
+To move a pin with the keyboard, tab to it and use the arrow keys. Each press moves one quarter unit:
+
+- **Right** moves a quarter unit from Smart to Cost, and **Left** moves it back.
+- **Up** moves a quarter unit to Time from the larger of Smart and Cost, and **Down** moves a quarter unit from Time to the larger of the two.
+- **Enter** or **Space** jumps the current allocation to the pin.
+
+Moves are saved in the browser's `localStorage`, so they stay on that browser only. A moved built-in Preset keeps its new position after a reload, and its chip gains a **↺** control. Click **↺** to put that Preset back at its default allocation. The defaults in the table above never change.
+
+Click **Save preset**, enter a name, and press Enter or click **Save** to keep the current allocation as a new pin. Press Escape or click **Cancel** to close the name field without saving. Built-in Preset names are rejected. The browser stores saved Presets in `localStorage` too. Click **×** on a saved Preset to remove it.
 
 ### URL hash
 

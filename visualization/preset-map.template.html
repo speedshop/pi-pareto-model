@@ -126,7 +126,7 @@
       vector-effect: non-scaling-stroke;
     }
 
-    .preset-dot { cursor: pointer; }
+    .preset-dot { cursor: grab; }
 
     .preset-symbol {
       fill: var(--ink);
@@ -193,80 +193,19 @@
       text-transform: uppercase;
     }
 
-    .allocation {
-      display: grid;
-      gap: 6px;
-    }
-
-    .axis-row {
-      display: grid;
-      grid-template-columns: 3.4rem 3rem 1fr auto;
-      gap: 10px;
-      align-items: center;
-      font-size: 0.82rem;
-    }
-
-    .axis-row .name {
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      font-size: 0.72rem;
-    }
-
-    .axis-row .value {
-      font-variant-numeric: tabular-nums;
-      font-weight: 850;
-      text-align: right;
-    }
-
-    .axis-row input[type="range"] {
-      width: 100%;
-      height: 10px;
+    .allocation-line {
       margin: 0;
-      border-radius: 5px;
-      background: linear-gradient(to right, var(--slate) var(--fill), var(--bar-track) var(--fill));
-      cursor: pointer;
-      appearance: none;
+      font-size: 0.9rem;
+      font-weight: 850;
+      font-variant-numeric: tabular-nums;
     }
 
-    .axis-row input[type="range"]::-webkit-slider-thumb {
-      width: 16px;
-      height: 16px;
-      border: 2px solid #fff;
-      border-radius: 50%;
-      background: var(--slate);
-      box-shadow: 0 1px 3px rgba(20, 24, 30, 0.3);
-      appearance: none;
-    }
-
-    .axis-row input[type="range"]::-moz-range-thumb {
-      width: 12px;
-      height: 12px;
-      border: 2px solid #fff;
-      border-radius: 50%;
-      background: var(--slate);
-      box-shadow: 0 1px 3px rgba(20, 24, 30, 0.3);
-    }
-
-    .axis-row input[type="range"]::-moz-range-track { background: transparent; }
-
-    .steppers { display: flex; gap: 4px; }
-
-    .steppers button, .chip, .save button {
+    .chip, .save button {
       border: 1px solid var(--rule);
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.7);
       cursor: pointer;
     }
-
-    .steppers button {
-      width: 2rem;
-      height: 1.6rem;
-      font-weight: 900;
-      line-height: 1;
-    }
-
-    button:disabled { opacity: 0.35; cursor: default; }
 
     .caption {
       margin: 2px 0 0;
@@ -561,8 +500,6 @@
       .preset-label { visibility: hidden; }
       .explainer { font-size: 14px; }
       #marker circle { r: 14px; }
-      .axis-row { font-size: 0.875rem; }
-      .axis-row .name { font-size: 0.75rem; }
       .caption, caption { font-size: 0.75rem; }
       .chip, .save button, .save input, .table-tools { font-size: 0.8125rem; }
       .save { margin-left: 0; }
@@ -651,12 +588,12 @@
 
     <section class="panel controls">
       <div>
-        <p class="eyebrow" id="allocation-title" data-i18n="allocationHeading"></p>
-        <div class="allocation" id="allocation" aria-labelledby="allocation-title"></div>
-        <p class="caption" id="allocation-rule" data-i18n="donorRule"></p>
+        <p class="eyebrow" data-i18n="allocationHeading"></p>
+        <p class="allocation-line" id="allocation"></p>
       </div>
       <div>
         <p class="eyebrow" data-i18n="presetsHeading"></p>
+        <p class="caption preset-hint" data-i18n="presetHint"></p>
         <div class="presets">
           <div class="presets" id="preset-chips"></div>
           <div class="save">
@@ -733,6 +670,7 @@ __RANKING_MODULE__
     const PRESET_LABELS = { overall: t("presetOverall"), fast: t("presetFast"), smart: t("presetSmart"), cheap: t("presetCheap") };
     const PRESET_SHAPES = { overall: "circle", fast: "triangle", smart: "diamond", cheap: "square" };
     const STORAGE_KEY = "pareto-model-presets";
+    const OVERRIDES_KEY = "pareto-preset-overrides";
     const triangle = {
       smart: { x: 72, y: 636 },
       fast: { x: 400, y: 70 },
@@ -1048,9 +986,21 @@ __RANKING_MODULE__
       }
     }
 
-    function writeCustomPresets() {
+    function readOverrides() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(OVERRIDES_KEY) ?? "{}");
+        return Object.fromEntries(Object.keys(DEFAULT_PRESETS)
+          .filter((key) => isPowerAllocation(stored?.[key]))
+          .map((key) => [key, stored[key]]));
+      } catch {
+        return {};
+      }
+    }
+
+    function writePresets() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(customPresets));
+        localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides));
       } catch {}
     }
 
@@ -1065,14 +1015,16 @@ __RANKING_MODULE__
 
     let allocation = parseHash();
     let customPresets = readCustomPresets();
+    const overrides = readOverrides();
     let focusedCell = cellAt({ smart: 7, fast: 3, cheap: 2 }) ?? cells[0];
     focusedCell.group.setAttribute("tabindex", "0");
 
     function presets() {
       return [
         ...Object.entries(DEFAULT_PRESETS).map(([key, value]) => ({
+          id: key,
           name: PRESET_LABELS[key],
-          allocation: value,
+          allocation: overrides[key] ?? value,
           builtIn: true,
           shape: PRESET_SHAPES[key],
         })),
@@ -1084,70 +1036,32 @@ __RANKING_MODULE__
       ];
     }
 
-    const allocationRows = document.querySelector("#allocation");
-    const axisControls = {};
-    AXES.forEach((axis) => {
-      const row = htmlElement("div", { class: "axis-row" });
-      const value = htmlElement("span", { class: "value" });
-      const range = htmlElement("input", {
-        type: "range",
-        min: 0,
-        max: TOTAL_POWER,
-        step: POWER_STEP,
-        "aria-label": AXIS_LABELS[axis],
-      });
-      range.addEventListener("input", () => setAxis(axis, range.valueAsNumber));
-      const steppers = htmlElement("div", { class: "steppers" });
-      const minus = htmlElement("button", {
-        type: "button",
-        "aria-label": t("decreaseLabel", { axis: AXIS_LABELS[axis] }),
-        "aria-describedby": "allocation-rule",
-        title: t("decreaseTitle"),
-      }, t("decrease"));
-      const plus = htmlElement("button", {
-        type: "button",
-        "aria-label": t("increaseLabel", { axis: AXIS_LABELS[axis] }),
-        "aria-describedby": "allocation-rule",
-        title: t("increaseTitle"),
-      }, t("increase"));
-      minus.addEventListener("click", () => setAllocation(transferPower(allocation, axis, largestOther(axis))));
-      plus.addEventListener("click", () => setAllocation(transferPower(allocation, largestOther(axis), axis)));
-      steppers.append(minus, plus);
-      row.append(htmlElement("span", { class: "name" }, AXIS_LABELS[axis]), value, range, steppers);
-      allocationRows.append(row);
-      axisControls[axis] = { value, range, minus, plus };
-    });
-
-    function largestOther(axis, from = allocation) {
-      return AXES.filter((other) => other !== axis)
-        .reduce((best, other) => from[other] > from[best] ? other : best);
-    }
-
-    function setAxis(axis, target) {
-      let next = allocation;
-      while (next[axis] !== target) {
-        const other = largestOther(axis, next);
-        const moved = next[axis] < target ? transferPower(next, other, axis) : transferPower(next, axis, other);
-        if (moved === next) break;
-        next = moved;
+    function movePreset(preset, next) {
+      if (!preset.builtIn) {
+        customPresets = customPresets.map((custom) => custom.name === preset.name ? { ...custom, allocation: next } : custom);
+      } else if (sameAllocation(next, DEFAULT_PRESETS[preset.id])) {
+        delete overrides[preset.id];
+      } else {
+        overrides[preset.id] = next;
       }
-      setAllocation(next);
     }
 
     const presetDots = document.querySelector("#preset-dots");
     const presetChips = document.querySelector("#preset-chips");
 
-    function renderPresets() {
+    function renderPresets(relabel = true) {
       presetDots.replaceChildren();
       presetChips.replaceChildren();
       const obstacles = [];
       const nameBoxes = [];
       const { width, height } = map.viewBox.baseVal;
-      presets().forEach((preset) => {
+      presets().forEach((preset, index) => {
         const point = allocationPoint(preset.allocation);
         const dot = svgElement("g", {
           class: "preset-dot",
-          role: "img",
+          role: "button",
+          tabindex: "0",
+          "data-preset": index,
           "aria-label": t("presetDotLabel", { name: preset.name, allocation: describeAllocation(preset.allocation) }),
         });
         const title = svgElement("title");
@@ -1166,7 +1080,28 @@ __RANKING_MODULE__
         text.textContent = preset.name;
         label.append(text);
         dot.append(title, symbol, label);
-        dot.addEventListener("click", () => setAllocation({ ...preset.allocation }));
+        dot.addEventListener("click", (event) => {
+          if (event.detail === 0) setAllocation({ ...preset.allocation });
+        });
+        dot.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setAllocation({ ...preset.allocation });
+            return;
+          }
+          const { smart, cheap } = preset.allocation;
+          const larger = smart >= cheap ? "smart" : "cheap";
+          const moves = { ArrowLeft: ["cheap", "smart"], ArrowRight: ["smart", "cheap"], ArrowUp: [larger, "fast"], ArrowDown: ["fast", larger] };
+          if (!moves[event.key]) return;
+          event.preventDefault();
+          const next = transferPower(preset.allocation, ...moves[event.key]);
+          if (next === preset.allocation) return;
+          movePreset(preset, next);
+          writePresets();
+          renderPresets();
+          setAllocation({ ...next });
+          presetDots.querySelector(`[data-preset="${index}"]`).focus();
+        });
         presetDots.append(dot);
         const backingAt = (placement) => {
           Object.entries(placement).forEach(([key, value]) => text.setAttribute(key, value));
@@ -1194,9 +1129,10 @@ __RANKING_MODULE__
         obstacles.push({ left: point.x - 9, right: point.x + 9, top: point.y - 9, bottom: point.y + 9 }, backing);
 
         const group = htmlElement("span", { class: "chip-group" });
+        const moved = preset.builtIn && preset.id in overrides;
         const chip = htmlElement("button", {
           type: "button",
-          class: preset.builtIn ? "chip" : "chip has-remove",
+          class: preset.builtIn && !moved ? "chip" : "chip has-remove",
           title: describeAllocation(preset.allocation),
         });
         const chipSymbol = svgElement("svg", {
@@ -1209,6 +1145,19 @@ __RANKING_MODULE__
         chip.dataset.allocation = JSON.stringify(preset.allocation);
         chip.addEventListener("click", () => setAllocation({ ...preset.allocation }));
         group.append(chip);
+        if (moved) {
+          const reset = htmlElement("button", {
+            type: "button",
+            class: "chip remove",
+            "aria-label": t("resetPresetLabel", { name: preset.name }),
+          }, t("resetPreset"));
+          reset.addEventListener("click", () => {
+            delete overrides[preset.id];
+            writePresets();
+            renderPresets();
+          });
+          group.append(reset);
+        }
         if (!preset.builtIn) {
           const remove = htmlElement("button", {
             type: "button",
@@ -1218,15 +1167,15 @@ __RANKING_MODULE__
           }, t("removePreset"));
           remove.addEventListener("click", () => {
             customPresets = customPresets.filter((custom) => custom.name !== preset.name);
-            writeCustomPresets();
+            writePresets();
             renderPresets();
-            renderChipState();
           });
           group.append(remove);
         }
         presetChips.append(group);
       });
-      placeRegionLabels(obstacles);
+      if (relabel) placeRegionLabels(obstacles);
+      renderChipState();
     }
 
     function renderChipState() {
@@ -1264,10 +1213,9 @@ __RANKING_MODULE__
       presetName.setCustomValidity(name === "" ? t("errorEmptyName") : builtIn ? t("errorBuiltInName", { name }) : "");
       if (!presetName.reportValidity()) return;
       customPresets = [...customPresets.filter((preset) => preset.name !== name), { name, allocation: { ...allocation } }];
-      writeCustomPresets();
+      writePresets();
       closeSaveForm();
       renderPresets();
-      renderChipState();
     });
 
     function metricQuality(range, value) {
@@ -1378,6 +1326,7 @@ __RANKING_MODULE__
 
     const map = document.querySelector(".map");
     const marker = document.querySelector("#marker");
+    const allocationLine = document.querySelector("#allocation");
     let press = null;
 
     function writeHash() {
@@ -1386,14 +1335,7 @@ __RANKING_MODULE__
     }
 
     function render() {
-      AXES.forEach((axis) => {
-        const controls = axisControls[axis];
-        controls.value.textContent = formatPower(allocation[axis]);
-        controls.range.value = allocation[axis];
-        controls.range.style.setProperty("--fill", `${allocation[axis] / TOTAL_POWER * 100}%`);
-        controls.minus.disabled = allocation[axis] < POWER_STEP;
-        controls.plus.disabled = allocation[largestOther(axis)] < POWER_STEP;
-      });
+      allocationLine.textContent = describeAllocation(allocation);
       const point = allocationPoint(allocation);
       marker.setAttribute("transform", `translate(${point.x} ${point.y})`);
       cells.forEach((cell) => {
@@ -1456,7 +1398,9 @@ __RANKING_MODULE__
 
     map.addEventListener("pointerdown", (event) => {
       if (!event.isPrimary || event.button !== 0) return;
-      press = { x: event.clientX, y: event.clientY, dragging: false };
+      const pin = event.target.closest(".preset-dot");
+      press = { x: event.clientX, y: event.clientY, dragging: false, pin: pin && Number(pin.dataset.preset) };
+      if (pin) return;
       const cell = cells.find((candidate) => candidate.group === event.target.closest(".hex"));
       if (!cell) return;
       focusCell(cell);
@@ -1468,12 +1412,26 @@ __RANKING_MODULE__
       if (!press.dragging && Math.hypot(event.clientX - press.x, event.clientY - press.y) <= 6) return;
       press.dragging = true;
       const next = pointerAllocation(event);
+      if (press.pin !== null) {
+        const preset = presets()[press.pin];
+        if (!sameAllocation(next, preset.allocation)) {
+          movePreset(preset, next);
+          renderPresets(false);
+        }
+      }
       if (!sameAllocation(next, allocation)) setAllocation(next);
     });
 
     ["pointerup", "pointercancel"].forEach((type) => window.addEventListener(type, (event) => {
       if (!press || !event.isPrimary) return;
+      const { pin, dragging } = press;
       press = null;
+      if (pin !== null && dragging) {
+        writePresets();
+        renderPresets();
+      } else if (pin !== null && type === "pointerup") {
+        setAllocation({ ...presets()[pin].allocation });
+      }
       writeHash();
     }));
 
