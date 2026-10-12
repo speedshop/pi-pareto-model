@@ -8,7 +8,7 @@ It compares each model variant (model and thinking level combo) with three measu
 - **Time:** Lower values are better.
 - **Cost:** Lower values are better.
 
-The page shows a triangle of power allocations. Each hexagon is colored by the model that ranks first for that allocation. Set the allocation on the triangle by clicking or dragging, or drag a preset's pin to move it. Below the triangle, you can read the current allocation, jump to presets, and read the full ranked frontier.
+The page shows a triangle of power allocations. Each hexagon is colored by the model that ranks first for that allocation. Set the allocation on the triangle by clicking or dragging, or drag a preset's pin to move it. Below the triangle, you can read the current allocation, jump to presets, choose which creators' models may compete, and read the ranked frontier with an explanation for each row.
 
 The page hides any model which is Pareto-dominated by another (e.g., you should never use model X because model Y is as smart and as fast but cheaper). It computes the frontier and the ranking in the browser from an embedded copy of the catalog. It makes no network requests and needs no server.
 
@@ -207,6 +207,23 @@ Moves are saved in the browser's `localStorage`, so they stay on that browser on
 
 Click **Save preset**, enter a name, and press Enter or click **Save** to keep the current allocation as a new pin. Press Escape or click **Cancel** to close the name field without saving. Built-in Preset names are rejected. The browser stores saved Presets in `localStorage` too. Click **×** on a saved Preset to remove it.
 
+### Creators
+
+Below the Presets, a collapsed **Creators** section lists every creator in the catalog alphabetically, each with a checkbox. All start checked. Its heading shows how many are checked, for example `3 of 9 selected`, so an active creator filter stays visible while the section is closed. **Select all** checks every creator and **Clear** unchecks them all.
+
+Only checked creators' models compete. Unchecking a creator recomputes every hexagon's winner, the region colors, labels and key, the table, its caption, and the small-screen summary bar. A model from an unchecked creator never wins a hexagon and never appears in the table, even among dominated rows. Domination is judged among the checked creators' models only, so a model whose only dominators are unchecked joins the frontier.
+
+The regret yardstick does not change. See [Ranking](#ranking).
+
+With no creator checked, the hexagons turn a neutral grey, the key is empty, and the table says that no creators are checked instead of naming a model. Presets, pins, the hash, and dragging keep working.
+
+The browser stores the selection in `localStorage` under `pareto-model-creators`, apart from Presets, as `{"selected": [...], "known": [...]}`: the checked creators and every creator the page knew when it saved. On load:
+
+- With nothing stored, or anything unreadable, every creator is checked.
+- A stored empty `selected` list stays empty.
+- Stored creators that are no longer in the catalog are ignored.
+- A creator missing from `known`, such as one added by a newer catalog, starts checked. A creator you unchecked stays unchecked.
+
 ### URL hash
 
 The URL hash holds the current allocation, for example `#s=7.25&t=3.25&c=1.5`. Share or bookmark the URL to return to that allocation.
@@ -215,15 +232,23 @@ The page uses Overall when the hash is missing, is malformed, uses steps other t
 
 ### Ranked table
 
-The table lists the frontier for the current allocation in rank order. The top row is the selected model. When you click a hexagon, the page clears the search box and highlights its winner in the top row. While a search is active, the filter can hide the rank 1 row.
+The table lists the frontier of the checked creators' models for the current allocation in rank order. The top row is the selected model. When you click a hexagon, the page clears the search box and highlights its winner in the top row. While a search is active, the filter can hide the rank 1 row.
 
 Each Smart, Time, and Cost cell has a bar. A longer bar is better, scaled between the shown rows' minimum and maximum. Each Time value uses seconds below 60 seconds and minutes at or above.
 
-**Show dominated** adds the dominated variants after the frontier in grey. Each one names a model that dominates it.
+**Show dominated** adds the checked creators' dominated variants after the frontier in grey. Each one names a checked creator's model that dominates it.
 
-The search box filters rows by model name or creator as you type.
+The search box filters rows by model name or creator as you type. It only hides table rows: unlike Creators, it never changes the triangle, the ranking, or the summary bar.
 
 The caption above the table counts the frontier models and names the top one.
+
+### Why this model?
+
+Each row, on wide and small screens, has a **Why this model?** button that opens a detail row beneath it. The detail lists the row's weighted regret on Smart, Time, and Cost, the same numbers the ranking used. Regret has no units, and lower is better. The largest weighted regret is marked as the limiting trade-off, because it alone sets the rank. When two or three axes share that exact value, each is marked as tied. A measure with no power is marked as not considered. A model with zero regret on every powered measure has no limiting trade-off.
+
+A dominated row also names its dominator among the checked creators and lists how the dominator differs on each measure: the amount, the catalog's unit for that measure, whether it is higher or lower, and whether that is better or worse.
+
+An open detail stays open by variant while you change the allocation or drag, and its numbers follow the allocation. Unchecking a variant's creator closes its detail.
 
 ### Explainer
 
@@ -235,15 +260,15 @@ At 600px wide or narrower:
 
 - The triangle spans the full width. A key below it lists each region label in the same order, with the model's color, in place of the labels on the triangle.
 - Preset symbols appear on the triangle without their names. The chips serve as the key.
-- A bar fixed to the bottom of the screen shows the current allocation and the top-ranked model's name, creator, and Smart, Time, and Cost values.
-- Each table row becomes a two-line card: rank, color, model, and creator, then Smart, Time, and Cost with their bars. The worst-regret column is hidden.
+- A bar fixed to the bottom of the screen shows the current allocation and the top-ranked model's name, creator, and Smart, Time, and Cost values, or says that no creators are checked.
+- Each table row becomes a two-line card: rank, color, model, creator, and the Why this model? button, then Smart, Time, and Cost with their bars. The worst-regret column is hidden, but the detail still shows each weighted regret.
 
 ## Ranking
 
-The page uses the Full Catalog and Reference Task Cost.
+The page uses Reference Task Cost. The candidates are the checked creators' variants, and the regret reference is the Full Catalog.
 
-1. **Pareto frontier.** For the measures that have power, the page removes every variant that another variant dominates. A variant dominates another when it is no worse on every powered measure and strictly better on at least one.
-2. **Regret.** For each powered measure, a frontier variant's regret is its gap from the best frontier value. The page divides that gap by the interquartile range of the frontier's distinct values for that measure. Smart and Cost use linear gaps. Time uses logarithmic gaps, so halving time counts the same at any speed.
+1. **Pareto frontier.** For the measures that have power, the page removes every candidate that another candidate dominates. A variant dominates another when it is no worse on every powered measure and strictly better on at least one.
+2. **Regret.** For each powered measure, a variant's regret is its gap from the best value on the Full Catalog frontier for the powered measures, whichever creators are checked. The page divides that gap by the interquartile range of that frontier's distinct values for that measure. Because this reference never depends on the creator selection, unchecking a creator removes rivals but leaves every remaining variant's regret unchanged. Dominated rows use the same reference. Smart and Cost use linear gaps. Time uses logarithmic gaps, so halving time counts the same at any speed.
 3. **Weighting.** Each regret is multiplied by that measure's power and divided by the total power on powered measures.
 4. **Minimax order.** Variants rank by their worst weighted regret, lowest first. Ties break by mean weighted regret and then by name.
 

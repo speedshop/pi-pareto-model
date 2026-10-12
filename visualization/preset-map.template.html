@@ -184,6 +184,8 @@
       margin-top: -4px;
     }
 
+    .controls > * { min-width: 0; }
+
     .eyebrow {
       margin: 0 0 6px;
       color: var(--muted);
@@ -294,6 +296,47 @@
       font-weight: 800;
     }
 
+    .creators summary {
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .creators summary .eyebrow {
+      display: inline;
+      margin: 0 6px 0 0;
+    }
+
+    .creators .caption { margin-top: 8px; }
+
+    .creator-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 8px 0;
+    }
+
+    .creator-actions .chip { padding: 3px 11px; }
+
+    .creator-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 14px;
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      font-size: 0.78rem;
+    }
+
+    .creator-list label {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
     .divider {
       width: 100%;
       height: 1px;
@@ -370,6 +413,79 @@
     .model .name { font-weight: 800; }
     .model .creator, .model .dominator { color: var(--muted); font-weight: 500; }
     .model .dominator { display: block; font-size: 0.68rem; }
+
+    .why-toggle {
+      display: block;
+      margin-top: 2px;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      cursor: pointer;
+    }
+
+    .why-toggle::before {
+      content: "";
+      display: inline-block;
+      margin-right: 5px;
+      border-top: 3.5px solid transparent;
+      border-bottom: 3.5px solid transparent;
+      border-left: 5px solid currentColor;
+      vertical-align: 1px;
+      transition: transform 150ms ease;
+    }
+
+    .why-toggle[aria-expanded="true"]::before { transform: rotate(90deg); }
+
+    .why-row[hidden] { display: none; }
+
+    .why-row td { padding: 2px 8px 10px 3rem; }
+
+    .why {
+      max-width: 40rem;
+      color: var(--ink);
+      font-size: 0.75rem;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .why p { margin: 0 0 6px; }
+
+    .why ul {
+      margin: 0 0 6px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .why li {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px 8px;
+      padding: 2px 0;
+    }
+
+    .why .why-axis { min-width: 9rem; font-weight: 800; }
+    .why .why-value { font-weight: 800; }
+    .why .why-off { color: var(--muted); }
+
+    .why .why-limit {
+      padding: 0 6px;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      font-size: 0.68rem;
+      font-weight: 800;
+    }
+
+    .empty-row td {
+      padding: 14px 8px;
+      color: var(--muted);
+      font-weight: 700;
+    }
 
     .metric {
       display: grid;
@@ -526,6 +642,10 @@
       thead th:nth-child(2), .regret { display: none; }
       .metric { grid-template-columns: minmax(0, 1fr); gap: 3px; }
       .metric .value { text-align: left; }
+      .model .name, .model .dominator { overflow-wrap: anywhere; }
+      .why-row, .empty-row { display: block; }
+      .why-row td { display: block; padding: 0 8px 10px 2.25rem; }
+      .empty-row td { display: block; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -606,6 +726,17 @@
           </div>
         </div>
       </div>
+      <details class="creators">
+        <summary><span class="eyebrow" data-i18n="creatorsHeading"></span> <span id="creator-count"></span></summary>
+        <p class="caption" data-i18n="creatorsHint"></p>
+        <div class="creator-actions">
+          <button type="button" class="chip" id="creators-all" data-i18n="creatorsSelectAll"></button>
+          <button type="button" class="chip" id="creators-none" data-i18n="creatorsClear"></button>
+        </div>
+        <fieldset class="creator-list" id="creator-list">
+          <legend class="visually-hidden" data-i18n="creatorsLegend"></legend>
+        </fieldset>
+      </details>
       <hr class="divider">
       <div>
         <div class="table-tools">
@@ -671,6 +802,8 @@ __RANKING_MODULE__
     const PRESET_SHAPES = { overall: "circle", fast: "triangle", smart: "diamond", cheap: "square" };
     const STORAGE_KEY = "pareto-model-presets";
     const OVERRIDES_KEY = "pareto-preset-overrides";
+    const CREATORS_KEY = "pareto-model-creators";
+    const EMPTY_HEX_COLOR = "#d6d2c8";
     const triangle = {
       smart: { x: 72, y: 636 },
       fast: { x: 400, y: 70 },
@@ -781,10 +914,34 @@ __RANKING_MODULE__
       return AXES.every((axis) => left[axis] === right[axis]);
     }
 
+    const creatorNames = [...new Set(variants.map((variant) => variant.creator))]
+      .sort((left, right) => left.localeCompare(right));
+
+    function readCreators() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(CREATORS_KEY));
+        if (!Array.isArray(stored?.selected) || !Array.isArray(stored?.known)) return new Set(creatorNames);
+        return new Set(creatorNames.filter((creator) =>
+          stored.selected.includes(creator) || !stored.known.includes(creator)));
+      } catch {
+        return new Set(creatorNames);
+      }
+    }
+
+    function writeCreators() {
+      try {
+        localStorage.setItem(CREATORS_KEY, JSON.stringify({ selected: [...selectedCreators], known: creatorNames }));
+      } catch {}
+    }
+
+    let selectedCreators = readCreators();
+    let eligible = variants.filter((variant) => selectedCreators.has(variant.creator));
+
     function ranked(allocation) {
       const axes = enabledAxes(allocation);
-      const frontier = paretoFront(variants, axes);
-      return { axes, frontier, ranking: rankVariants(frontier, allocation, axes, frontier) };
+      const reference = paretoFront(variants, axes);
+      const frontier = paretoFront(eligible, axes);
+      return { axes, reference, frontier, ranking: rankVariants(frontier, allocation, axes, reference) };
     }
 
     const hexes = document.querySelector("#hexes");
@@ -796,24 +953,29 @@ __RANKING_MODULE__
     for (let fast = TOTAL_POWER; fast >= 0; fast -= 1) {
       for (let smart = 0; smart <= TOTAL_POWER - fast; smart += 1) {
         const allocation = { smart, fast, cheap: TOTAL_POWER - fast - smart };
-        const winner = variantsById.get(ranked(allocation).ranking[0].id);
         const center = allocationPoint(allocation);
-        const group = svgElement("g", {
-          class: "hex",
-          tabindex: "-1",
-          role: "button",
-          "aria-label": t("hexLabel", { allocation: describeAllocation(allocation), model: winner.name }),
-        });
+        const group = svgElement("g", { class: "hex", tabindex: "-1", role: "button" });
         const title = svgElement("title");
-        title.textContent = t("hexTitle", { allocation: describeAllocation(allocation), model: winner.name });
-        group.append(title, svgElement("polygon", {
-          points: hexPoints(center, radius + 0.6),
-          fill: winner.color,
-          stroke: winner.color,
-        }));
+        const polygon = svgElement("polygon", { points: hexPoints(center, radius + 0.6) });
+        group.append(title, polygon);
         hexes.append(group);
-        cells.push({ group, winner, allocation, center });
+        cells.push({ group, title, polygon, allocation, center });
       }
+    }
+
+    function assignWinners() {
+      cells.forEach((cell) => {
+        const top = ranked(cell.allocation).ranking[0];
+        cell.winner = top && variantsById.get(top.id);
+        const names = { allocation: describeAllocation(cell.allocation), model: cell.winner?.name ?? t("hexNoModel") };
+        cell.group.setAttribute("aria-label", t("hexLabel", names));
+        cell.title.textContent = t("hexTitle", names);
+        cell.polygon.setAttribute("fill", cell.winner?.color ?? EMPTY_HEX_COLOR);
+        cell.polygon.setAttribute("stroke", cell.winner?.color ?? EMPTY_HEX_COLOR);
+      });
+      labelledRegions = connectedRegions()
+        .filter((region) => region.length > 1 && region[0].winner)
+        .sort((left, right) => right.length - left.length);
     }
 
     function cellAt(allocation) {
@@ -964,9 +1126,7 @@ __RANKING_MODULE__
       }
     }
 
-    const labelledRegions = connectedRegions()
-      .filter((region) => region.length > 1)
-      .sort((left, right) => right.length - left.length);
+    let labelledRegions = [];
 
     function placeRegionLabels(obstacles) {
       labels.replaceChildren();
@@ -1271,25 +1431,94 @@ __RANKING_MODULE__
       return [axis, { label, value }];
     }));
     const formatMetric = { smart: formatSmart, fast: formatTime, cheap: formatCost };
+    const expandedWhy = new Set();
     let flashTop = false;
 
     function renderSummary(top) {
-      summarySwatch.style.background = variantsById.get(top.id).color;
-      summaryName.textContent = top.name;
-      summaryCreator.textContent = top.creator;
+      summarySwatch.style.background = top ? variantsById.get(top.id).color : "";
+      summaryName.textContent = top ? top.name : t("summaryEmpty");
+      summaryCreator.textContent = top ? top.creator : "";
       AXES.forEach((axis) => {
         summaryAxes[axis].label.textContent = t("allocationPart", { axis: AXIS_LABELS[axis], value: formatPower(allocation[axis]) });
-        summaryAxes[axis].value.textContent = formatMetric[axis](top.metrics[axis]);
+        summaryAxes[axis].value.textContent = top ? formatMetric[axis](top.metrics[axis]) : t("emptyValue");
       });
     }
 
+    function formatRegret(value) {
+      return value.toFixed(3);
+    }
+
+    function formatDifference(value) {
+      return String(value >= 1000 ? Math.round(value) : Number(value.toPrecision(3)));
+    }
+
+    function metricDifference(axis, dominator, variant, considered) {
+      const difference = dominator.metrics[axis] - variant.metrics[axis];
+      const definition = catalog.metricDefinitions[axis];
+      const higherIsBetter = definition.better === "higher";
+      const key = difference === 0 ? "whyDifferenceSame"
+        : difference > 0 ? (higherIsBetter ? "whyDifferenceHigherBetter" : "whyDifferenceHigherWorse")
+          : (higherIsBetter ? "whyDifferenceLowerWorse" : "whyDifferenceLowerBetter");
+      const item = htmlElement("li", {}, t(key, {
+        axis: AXIS_LABELS[axis],
+        amount: formatDifference(Math.abs(difference)),
+        unit: definition.unit.replaceAll("-", " "),
+      }));
+      if (!considered) item.append(htmlElement("span", { class: "why-off" }, t("whyNotConsidered")));
+      return item;
+    }
+
+    function whyDetails(variant, dominator, axes) {
+      const { contributions, worstRegret } = variant.ranking;
+      const limiting = worstRegret > 0 ? axes.filter((axis) => contributions[axis] === worstRegret) : [];
+      const list = htmlElement("ul");
+      AXES.forEach((axis) => {
+        const item = htmlElement("li");
+        item.append(htmlElement("span", { class: "why-axis" }, t("whyAxis", {
+          axis: AXIS_LABELS[axis],
+          power: formatPower(allocation[axis]),
+          total: TOTAL_POWER,
+        })));
+        if (!axes.includes(axis)) {
+          item.append(htmlElement("span", { class: "why-off" }, t("whyNotConsidered")));
+        } else {
+          item.append(htmlElement("span", { class: "why-value" }, formatRegret(contributions[axis])));
+          if (limiting.includes(axis)) {
+            item.append(htmlElement("span", { class: "why-limit" }, t(limiting.length > 1 ? "whyLimitingTied" : "whyLimiting")));
+          }
+        }
+        list.append(item);
+      });
+      const score = t(limiting.length === 0 ? "whyNoRegret" : limiting.length > 1 ? "whyScoreTied" : "whyScore", {
+        value: formatRegret(worstRegret),
+        axes: limiting.map((axis) => AXIS_LABELS[axis]).join(t("whyAxisJoin")),
+      });
+      const body = htmlElement("div", { class: "why" });
+      body.append(htmlElement("p", {}, t("whyIntro")), list, htmlElement("p", {}, score));
+      if (dominator) {
+        const differences = htmlElement("ul");
+        differences.append(...AXES.map((axis) => metricDifference(axis, dominator, variant, axes.includes(axis))));
+        body.append(htmlElement("p", {}, t("whyDominated", { name: dominator.name, creator: dominator.creator })), differences);
+      }
+      return body;
+    }
+
     function renderTable() {
-      const { axes, frontier, ranking } = ranked(allocation);
+      const { axes, reference, frontier, ranking } = ranked(allocation);
+      if (ranking.length === 0) {
+        tableCaption.textContent = t("captionEmpty");
+        renderSummary();
+        const row = htmlElement("tr", { class: "empty-row" });
+        row.append(htmlElement("td", { colspan: "6" }, t("emptyCreators")));
+        rowsBody.replaceChildren(row);
+        flashTop = false;
+        return;
+      }
       const rows = ranking.map((variant, index) => ({ variant, rank: index + 1 }));
       if (showDominated.checked) {
-        const dominated = variants.filter((variant) => !frontier.includes(variant));
-        rankVariants(dominated, allocation, axes, frontier).forEach((variant) => {
-          rows.push({ variant, dominator: dominatorOf(variantsById.get(variant.id), variants, axes) });
+        const dominated = eligible.filter((variant) => !frontier.includes(variant));
+        rankVariants(dominated, allocation, axes, reference).forEach((variant) => {
+          rows.push({ variant, dominator: dominatorOf(variantsById.get(variant.id), eligible, axes) });
         });
       }
       const query = search.value.trim().toLowerCase();
@@ -1302,7 +1531,7 @@ __RANKING_MODULE__
       tableCaption.textContent = query ? t("captionShown", { caption, shown: shown.length }) : caption;
       renderSummary(ranking[0]);
 
-      rowsBody.replaceChildren(...shown.map(({ variant, rank, dominator }) => {
+      rowsBody.replaceChildren(...shown.flatMap(({ variant, rank, dominator }, index) => {
         const row = htmlElement("tr", { class: dominator ? "dominated" : rank === 1 ? "top" : "" });
         if (rank === 1 && flashTop) row.classList.add("flash");
         const model = htmlElement("div", { class: "model" });
@@ -1310,6 +1539,15 @@ __RANKING_MODULE__
         const names = htmlElement("span");
         names.append(htmlElement("span", { class: "name" }, variant.name), " ", htmlElement("span", { class: "creator" }, variant.creator));
         if (dominator) names.append(htmlElement("span", { class: "dominator" }, t("dominatedBy", { name: dominator.name })));
+        const open = expandedWhy.has(variant.id);
+        const toggle = htmlElement("button", {
+          type: "button",
+          class: "why-toggle",
+          "aria-expanded": String(open),
+          "aria-controls": `why-${index}`,
+          "aria-label": t("whyToggleLabel", { name: variant.name }),
+        }, t("whyToggle"));
+        names.append(toggle);
         model.append(swatch, names);
         const modelCell = htmlElement("td");
         modelCell.append(model);
@@ -1317,9 +1555,25 @@ __RANKING_MODULE__
           htmlElement("td", { class: "rank" }, rank ? String(rank) : t("dominatedRank")),
           modelCell,
           ...AXES.map((axis) => metricCell(ranges[axis], variant.metrics[axis], formatMetric[axis](variant.metrics[axis]))),
-          htmlElement("td", { class: "regret" }, variant.ranking.worstRegret.toFixed(3)),
+          htmlElement("td", { class: "regret" }, formatRegret(variant.ranking.worstRegret)),
         );
-        return row;
+        const detail = htmlElement("tr", { class: "why-row", id: `why-${index}` });
+        const detailCell = htmlElement("td", { colspan: "6" });
+        detail.hidden = !open;
+        if (open) detailCell.append(whyDetails(variant, dominator, axes));
+        detail.append(detailCell);
+        toggle.addEventListener("click", () => {
+          const expanded = toggle.getAttribute("aria-expanded") !== "true";
+          toggle.setAttribute("aria-expanded", String(expanded));
+          detail.hidden = !expanded;
+          if (expanded) {
+            expandedWhy.add(variant.id);
+            if (!detailCell.firstChild) detailCell.append(whyDetails(variant, dominator, axes));
+          } else {
+            expandedWhy.delete(variant.id);
+          }
+        });
+        return [row, detail];
       }));
       flashTop = false;
     }
@@ -1461,6 +1715,42 @@ __RANKING_MODULE__
     showDominated.addEventListener("change", renderTable);
     window.addEventListener("hashchange", () => setAllocation(parseHash()));
 
+    const creatorCount = document.querySelector("#creator-count");
+    const creatorBoxes = creatorNames.map((creator) => {
+      const label = htmlElement("label");
+      const box = htmlElement("input", { type: "checkbox" });
+      box.addEventListener("change", () => {
+        const next = new Set(selectedCreators);
+        if (box.checked) next.add(creator);
+        else next.delete(creator);
+        setCreators(next);
+      });
+      label.append(box, creator);
+      document.querySelector("#creator-list").append(label);
+      return [creator, box];
+    });
+
+    function renderCreators() {
+      creatorBoxes.forEach(([creator, box]) => { box.checked = selectedCreators.has(creator); });
+      creatorCount.textContent = t("creatorsCount", { selected: selectedCreators.size, total: creatorNames.length });
+    }
+
+    function setCreators(next) {
+      selectedCreators = new Set(creatorNames.filter((creator) => next.has(creator)));
+      eligible = variants.filter((variant) => selectedCreators.has(variant.creator));
+      expandedWhy.forEach((id) => {
+        if (!selectedCreators.has(variantsById.get(id).creator)) expandedWhy.delete(id);
+      });
+      writeCreators();
+      renderCreators();
+      assignWinners();
+      renderPresets();
+      render();
+    }
+
+    document.querySelector("#creators-all").addEventListener("click", () => setCreators(new Set(creatorNames)));
+    document.querySelector("#creators-none").addEventListener("click", () => setCreators(new Set()));
+
     const source = { name: catalog.name, version: catalog.version, date: catalog.generatedAt.slice(0, 10), attribution: catalog.attribution };
     document.querySelector("#source-note").textContent = t(catalog.attribution ? "footerSourceAttributed" : "footerSource", source);
 
@@ -1499,6 +1789,8 @@ __RANKING_MODULE__
       return section;
     }));
 
+    renderCreators();
+    assignWinners();
     renderPresets();
     render();
   </script>
