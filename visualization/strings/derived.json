@@ -6,7 +6,6 @@
   "summaryEmpty": "No published frontier models from these creators",
   "captionEmpty": "No published frontier models from these creators.",
   "emptyCreators": "No published frontier models from the checked creators. Select more creators to see a ranking.",
-  "whyIntro": "Rank order is calculated privately by Speedshop using Pareto efficiency and preference-weighted minimax regret. Source measurements and numeric regret values are not published.",
   "explainRanking": [
     "Speedshop calculates these rankings privately from the source catalog. First it drops every model that another Full Catalog model matches or beats on every axis you consider and beats on at least one. The models left over form the Pareto frontier. An axis is not considered when your priorities sit on the triangle's edge opposite its corner.",
     "The frontier is then sorted by interquartile minimax regret, weighting each axis by how much it matters in your priorities. Ties go to lower mean weighted regret, then model name. The resulting orders are Speedshop's analysis, not the source provider's published rankings or recommendations.",

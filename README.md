@@ -100,7 +100,7 @@ Before the first deploy, set **Settings → Pages → Build and deployment → S
 
 ## AA-derived edition
 
-The AA edition uses Speedshop's privately computed frontier rank orders, not a copy of AA's leaderboard rankings. It retains triangle selection at quarter-step resolution, creator filtering, and search. It publishes model names and reasoning labels, frontier orderings for all 1,225 priority mixes, and source metadata. It does not publish AA measurements, adjustment factors, metric provenance, normalization constants, numeric regret scores, or full-catalog single-axis comparisons. The top-model card and table omit measurement columns, including on mobile and in expanded explanations.
+The AA edition uses Speedshop's privately computed frontier rank orders, not a copy of AA's leaderboard rankings. It retains triangle selection at quarter-step resolution, creator filtering, and search. It publishes model names and reasoning labels, frontier orderings for all 1,225 priority mixes, and source metadata. It does not publish AA measurements, adjustment factors, metric provenance, normalization constants, numeric regret scores, or full-catalog single-axis comparisons. The top-model card and table omit measurement columns, including on mobile. This edition has no **Why this model?** dropdowns.
 
 In this edition, creator filters only narrow the published Full Catalog frontier rankings. They do not recalculate a frontier from the checked creators, and models dominated in the Full Catalog remain excluded. The triangle follows the filtered published ranking. The AA edition does not offer **Show dominated**.
 

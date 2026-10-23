@@ -44,7 +44,6 @@
   "whyToggleLabel": "Why this model: {name}",
   "whyIntro": "Each number is a weighted regret: the model's gap from the best Full Catalog frontier value on that axis, divided by that frontier's interquartile range, then weighted by how much that axis matters in your current priorities. Regret has no units, and lower is better.",
   "whyNotConsidered": "Not considered",
-  "whyDerivedFrontier": "This model belongs to the Full Catalog frontier on the considered axes. Its position follows Speedshop's precomputed ranking for these priorities: {priorities}. Creator filters only narrow that published ranking. Underlying source measurements and numeric ranking scores are not published.",
   "derivedAttribution": "Based on data from {provider}.",
   "derivedNonEndorsement": "The visualization and rankings were created by Speedshop and do not represent the views or endorsement of {provider}.",
   "whyLimiting": "Limiting trade-off",
