@@ -18,6 +18,7 @@ Data is provided by DeepSWE, though you can substitute in your own source.
 
 - [Build the page](#build-the-page)
 - [Published page](#published-page)
+- [AA-derived edition](#aa-derived-edition)
 - [Catalog configuration](#catalog-configuration)
 - [Change the text](#change-the-text)
 - [Using the page](#using-the-page)
@@ -43,7 +44,7 @@ mkdir -p tmp
 mise run build --url https://example.com/model-selection-catalog.json --output tmp/example.html
 ```
 
-`mise run build:aa` builds `preset-map-aa.html` from the private Artificial Analysis catalog through the active GitHub CLI account. Do not publish that page.
+`mise run build:aa` builds the measurement-free AA-derived edition from the committed ranking snapshot. See [AA-derived edition](#aa-derived-edition).
 
 The same options work without mise through `npm run build:preset-map -- --url URL`. Without `--catalog` or `--url`, the build reads the catalog source from a configuration file. See [Catalog configuration](#catalog-configuration).
 
@@ -67,12 +68,15 @@ The build:
 | `--output PATH` | Write the HTML here (default: `preset-map.html`) |
 | `--template PATH` | Use a different HTML template |
 | `--strings PATH` | Override page text with keys from this JSON file. See [Change the text](#change-the-text) |
-| `--allow-restricted` | Build from a catalog that does not allow redistribution |
+| `--allow-restricted` | Build a private measured page from a restricted catalog; do not publish it |
+| `--derived` | Precompute frontier rank orders without publishing measurements |
+| `--export-rankings PATH` | With `--derived`, write the validated measurement-free snapshot |
+| `--rankings PATH` | Build from a validated measurement-free snapshot instead of a raw catalog |
 | `--help` | Show the options |
 
 ### Redistribution
 
-The built page contains the catalog's metrics. Ship only a page built from a catalog whose `catalog.distribution.allowRedistribution` is `true`.
+The default built page contains the catalog's metrics. Ship that measured page only when the catalog's `catalog.distribution.allowRedistribution` is `true`.
 
 The build refuses a catalog whose `allowRedistribution` is `false`. It prints the catalog's attribution and terms URL instead. Pass `--allow-restricted` to build a private copy anyway, and do not publish that page.
 
@@ -80,7 +84,7 @@ Git ignores every `preset-map*.html` file except the template.
 
 ## Published page
 
-The [Pages workflow](.github/workflows/pages.yml) publishes the page built from the public DeepSWE catalog at <https://speedshop.github.io/pi-pareto-model/>. It never builds from the Artificial Analysis catalog and never passes `--allow-restricted`, so it fails if the DeepSWE catalog stops allowing redistribution. The page carries the catalog's attribution and terms link.
+The [Pages workflow](.github/workflows/pages.yml) publishes the measured DeepSWE edition at <https://speedshop.github.io/pi-pareto-model/> and the AA-derived rankings-only edition at <https://speedshop.github.io/pi-pareto-model/aa/>. The public runner reads the redistributable DeepSWE catalog and a committed, measurement-free AA ranking snapshot. It never reads the private AA catalog or passes `--allow-restricted`. Both pages carry source attribution and terms links.
 
 The workflow runs only on `main`:
 
@@ -90,9 +94,32 @@ The workflow runs only on `main`:
 
 The workflow downloads the catalog once and builds from those same bytes, so the recorded hash always matches the published page. A run that fails before deploying leaves the published `deployment.json` unchanged, so the next daily run tries again. A missing or unreadable `deployment.json` triggers a deploy. Any other failure to download the catalog or `deployment.json` fails the run instead of deploying stale data.
 
-The site holds only `index.html` and `deployment.json`. Neither is committed.
+The site holds only `index.html`, `aa/index.html`, and `deployment.json`. The generated pages are not committed.
 
 Before the first deploy, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**. The workflow does not enable Pages itself.
+
+## AA-derived edition
+
+The AA edition uses Speedshop's privately computed frontier rank orders, not a copy of AA's leaderboard rankings. It retains triangle selection at quarter-step resolution, creator filtering, and search. It publishes model names and reasoning labels, frontier orderings for all 1,225 priority mixes, and source metadata. It does not publish AA measurements, adjustment factors, metric provenance, normalization constants, numeric regret scores, or full-catalog single-axis comparisons. The top-model card and table omit measurement columns, including on mobile and in expanded explanations.
+
+In this edition, creator filters only narrow the published Full Catalog frontier rankings. They do not recalculate a frontier from the checked creators, and models dominated in the Full Catalog remain excluded. The triangle follows the filtered published ranking. The AA edition does not offer **Show dominated**.
+
+Build the current snapshot without accessing the private source:
+
+```fish
+mise run build:aa
+open preset-map-aa.html
+```
+
+To refresh it, first obtain the private catalog locally and keep it in a gitignored location. Then run:
+
+```fish
+mise run refresh:aa --catalog tmp/aa-catalog.json
+```
+
+This privately computes rankings, writes `data/aa-rankings.json`, and builds and verifies `preset-map-aa.html`. Commit only the derived snapshot, never the raw catalog or a page built with `--allow-restricted`. The public Pages workflow rebuilds from the committed snapshot and verifies its embedded data against an allowlist schema before uploading. Unknown fields, including a `metrics` object, fail the build. Daily publishing still refreshes DeepSWE automatically; AA updates require a newly generated snapshot and a commit.
+
+The AA chart includes the logo reproduced from [AA's website](https://artificialanalysis.ai/). Visible attribution says "Based on data from Artificial Analysis," identifies Speedshop as the author of the visualization and rankings, and disclaims AA endorsement. The source terms remain linked. Publishing this edition relies on the chart/Derived Data permissions in [AA's Data Platform Terms](https://artificialanalysiscdn.com/legal/ProDataPlatformTerms.pdf); removing measurements is not a waiver of those terms or a claim that AA has approved an interactive selection service. The interaction with the competitive-use restriction remains unresolved.
 
 ## Change the text
 
@@ -327,4 +354,4 @@ Keep each change focused. Add or update tests when behavior changes.
 
 ## License
 
-This project uses the MIT license.
+The project code uses the MIT license. Benchmark data, derived AA rankings, and the Artificial Analysis logo are not relicensed under MIT; their source terms and attribution requirements continue to apply.

@@ -16,7 +16,7 @@
   "scripts": {
     "build:preset-map": "node scripts/build-preset-map.mjs",
     "test": "vitest run",
-    "check": "npm test"
+    "check": "npm test && node test/derived.e2e.mjs"
   },
   "dependencies": {
     "ajv": "^8.17.1",
