@@ -1261,11 +1261,6 @@ __RANKING_MODULE__
     }
 
     function whyDetails(variant, dominator, axes) {
-      if (derived) {
-        const body = htmlElement("div", { class: "why" });
-        body.append(htmlElement("p", {}, t("whyDerivedFrontier", { priorities: describePriorities(allocation) })));
-        return body;
-      }
       const { contributions, worstRegret } = variant.ranking;
       const limiting = worstRegret > 0 ? axes.filter((axis) => contributions[axis] === worstRegret) : [];
       const list = htmlElement("ul");
@@ -1332,15 +1327,6 @@ __RANKING_MODULE__
         const names = htmlElement("span");
         names.append(htmlElement("span", { class: "name" }, variant.name), " ", htmlElement("span", { class: "creator" }, variant.creator));
         if (dominator) names.append(htmlElement("span", { class: "dominator" }, t("dominatedBy", { name: dominator.name })));
-        const open = expandedWhy.has(variant.id);
-        const toggle = htmlElement("button", {
-          type: "button",
-          class: "why-toggle",
-          "aria-expanded": String(open),
-          "aria-controls": `why-${index}`,
-          "aria-label": t("whyToggleLabel", { name: variant.name }),
-        }, t("whyToggle"));
-        names.append(toggle);
         model.append(swatch, names);
         const modelCell = htmlElement("td", { class: "model-cell" });
         modelCell.append(model);
@@ -1352,8 +1338,18 @@ __RANKING_MODULE__
             htmlElement("td", { class: "regret" }, formatRegret(variant.ranking.worstRegret)),
           ]),
         );
+        if (derived) return [row];
+        const open = expandedWhy.has(variant.id);
+        const toggle = htmlElement("button", {
+          type: "button",
+          class: "why-toggle",
+          "aria-expanded": String(open),
+          "aria-controls": `why-${index}`,
+          "aria-label": t("whyToggleLabel", { name: variant.name }),
+        }, t("whyToggle"));
+        names.append(toggle);
         const detail = htmlElement("tr", { class: "why-row", id: `why-${index}` });
-        const detailCell = htmlElement("td", { colspan: derived ? "2" : "6" });
+        const detailCell = htmlElement("td", { colspan: "6" });
         detail.hidden = !open;
         if (open) detailCell.append(whyDetails(variant, dominator, axes));
         detail.append(detailCell);
