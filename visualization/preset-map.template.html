@@ -603,7 +603,7 @@
     <header>
       <h1 data-i18n="heading"></h1>
       <p class="narrow" data-i18n="mobileHint"></p>
-      <p class="edition-link">__EDITION_LINK__</p>
+      __EDITION_LINK__
     </header>
 
     <svg class="map" viewBox="0 0 800 700" role="group" aria-labelledby="map-title map-description">
@@ -1538,28 +1538,32 @@ __RANKING_MODULE__
       return element;
     }
 
-    document.querySelector("#explainer").append(...[
+    const metricSection = [t("explainMetricsTitle"), [
+      paragraph(t("explainMetricsIntro")),
+      ...AXES.map((axis, index) => {
+        const definition = catalog.metricDefinitions[axis];
+        const text = derived ? t("explainAxes")[index] : t("explainMetric", {
+          axis: AXIS_LABELS[axis],
+          task: definition.task,
+          unit: metricUnit(axis),
+          better: t(definition.better === "higher" ? "betterHigher" : "betterLower"),
+        });
+        return paragraph(text, definition.methodologyUrl, t("methodologyLink"));
+      }),
+    ]];
+    const rankingSections = [
       [t("explainRankingTitle"), t("explainRanking").map((text) => paragraph(text))],
       [t("explainRegretTitle"), t("explainRegret").map((text) => paragraph(text))],
-      [t("explainMetricsTitle"), [
-        paragraph(t("explainMetricsIntro")),
-        ...AXES.map((axis) => {
-          const definition = catalog.metricDefinitions[axis];
-          return paragraph(t("explainMetric", {
-            axis: AXIS_LABELS[axis],
-            task: definition.task,
-            unit: metricUnit(axis),
-            better: t(definition.better === "higher" ? "betterHigher" : "betterLower"),
-          }), definition.methodologyUrl, t("methodologyLink"));
-        }),
-      ]],
+    ];
+    document.querySelector("#explainer").append(...[
+      ...(derived ? [metricSection, ...rankingSections] : [...rankingSections, metricSection]),
       [t("explainDataTitle"), [
         ...(derived ? [
           paragraph(t("derivedAttribution", source), catalog.metricDefinitions.smart.methodologyUrl, t("methodologyLink")),
           paragraph(t("derivedNonEndorsement", source)),
         ] : []),
         paragraph(
-          [t("explainData", source), catalog.attribution && t("explainAttribution", source)].filter(Boolean).join(" "),
+          [t("explainData", source), !derived && catalog.attribution && t("explainAttribution", source)].filter(Boolean).join(" "),
           catalog.termsUrl,
           t("termsLink"),
         ),

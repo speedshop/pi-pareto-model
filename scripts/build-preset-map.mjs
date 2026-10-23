@@ -235,8 +235,8 @@ async function main() {
   const brand = derived && data.catalog.name === "Artificial Analysis Intelligence Index"
     ? await readFile(join(ROOT, "visualization", "artificial-analysis-brand.html"), "utf8") : "";
   const editionLink = derived
-    ? '<a href="https://speedshop.github.io/pi-pareto-model/">DeepSWE edition</a>'
-    : '<a href="https://speedshop.github.io/pi-pareto-model/aa/">Artificial Analysis-derived rankings</a>';
+    ? ""
+    : '<p class="edition-link"><a href="https://speedshop.github.io/pi-pareto-model/aa/">Artificial Analysis-derived rankings</a></p>';
   const embed = (value) => JSON.stringify(value).replaceAll("<", "\\u003c");
   const html = [
     ["__RANKING_MODULE__", rankingModule.replace(/^export /gm, "")],
