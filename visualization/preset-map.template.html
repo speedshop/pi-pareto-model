@@ -475,6 +475,10 @@
 
     .explainer a { color: inherit; font-weight: 700; }
 
+    .table-tools label[hidden] { display: none; }
+    .edition-link { font-size: 0.78rem; }
+    .edition-link a { color: inherit; }
+
     footer {
       margin-top: 13px;
       color: #7b8088;
@@ -582,6 +586,13 @@
       .empty-row td { display: block; }
     }
 
+    @media (max-width: 600px) {
+      .rankings-only tr { grid-template-columns: 1.75rem minmax(0, 1fr); }
+      .rankings-only td.rank { grid-row: auto; }
+      .rankings-only thead th:nth-child(2) { display: block; }
+      .rankings-only tbody td:nth-child(2) { padding-bottom: 5px; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
     }
@@ -592,6 +603,7 @@
     <header>
       <h1 data-i18n="heading"></h1>
       <p class="narrow" data-i18n="mobileHint"></p>
+      <p class="edition-link">__EDITION_LINK__</p>
     </header>
 
     <svg class="map" viewBox="0 0 800 700" role="group" aria-labelledby="map-title map-description">
@@ -611,6 +623,7 @@
         </filter>
       </defs>
 
+__SOURCE_BRAND__
       <g id="hexes" clip-path="url(#triangle-clip)" filter="url(#paper-grain)"></g>
       <path class="triangle-outline" d="M400 70 L72 636 L728 636 Z" />
       <g id="labels"></g>
@@ -697,6 +710,12 @@ __RANKING_MODULE__
     const mapData = __PRESET_MAP_DATA__;
     const strings = __STRINGS__;
     const { catalog, variants } = mapData;
+    const derived = mapData.kind === "derived-rankings-v1";
+    if (derived) {
+      document.body.classList.add("rankings-only");
+      document.querySelectorAll("thead th:nth-child(n + 3), #winner-metrics, #summary-axes").forEach((element) => element.remove());
+      document.querySelector("#show-dominated").closest("label").hidden = true;
+    }
 
     function t(key, vars = {}) {
       const fillIn = (text) => text.replace(/\{(\w+)\}/g, (match, name) => vars[name] ?? match);
@@ -920,6 +939,11 @@ __RANKING_MODULE__
 
     function ranked(allocation) {
       const axes = enabledAxes(allocation);
+      if (derived) {
+        const ranking = mapData.orders[`${allocation.smart},${allocation.fast}`]
+          .map((index) => variants[index]).filter((variant) => selectedCreators.has(variant.creator));
+        return { axes, frontier: ranking, ranking };
+      }
       const reference = paretoFront(variants, axes);
       const frontier = paretoFront(eligible, axes);
       return { axes, reference, frontier, ranking: rankVariants(frontier, allocation, axes, reference) };
@@ -1183,14 +1207,14 @@ __RANKING_MODULE__
     const winnerSwatches = document.querySelectorAll("#summary-swatch, #winner-swatch");
     const winnerNames = document.querySelectorAll("#summary-name, #winner-name");
     const winnerCreators = document.querySelectorAll("#summary-creator, #winner-creator");
-    const summaryValues = Object.fromEntries(AXES.map((axis) => {
+    const summaryValues = derived ? {} : Object.fromEntries(AXES.map((axis) => {
       const cell = htmlElement("div");
       const value = htmlElement("span", { class: "value" });
       cell.append(htmlElement("span", { class: "axis" }, AXIS_LABELS[axis]), value);
       document.querySelector("#summary-axes").append(cell);
       return [axis, value];
     }));
-    const winnerValues = Object.fromEntries(AXES.map((axis) => {
+    const winnerValues = derived ? {} : Object.fromEntries(AXES.map((axis) => {
       const item = htmlElement("div");
       const value = htmlElement("dd", { class: "value" });
       item.append(htmlElement("dt", {}, AXIS_LABELS[axis]), value, htmlElement("dd", { class: "unit" }, metricUnit(axis)));
@@ -1205,6 +1229,7 @@ __RANKING_MODULE__
       winnerSwatches.forEach((swatch) => { swatch.style.background = top ? variantsById.get(top.id).color : ""; });
       winnerNames.forEach((name) => { name.textContent = top ? top.name : t("summaryEmpty"); });
       winnerCreators.forEach((creator) => { creator.textContent = top ? top.creator : ""; });
+      if (derived) return;
       AXES.forEach((axis) => {
         summaryValues[axis].textContent = top ? formatMetric[axis](top.metrics[axis]) : t("emptyValue");
         winnerValues[axis].textContent = top ? formatAmount(top.metrics[axis]) : t("emptyValue");
@@ -1236,6 +1261,11 @@ __RANKING_MODULE__
     }
 
     function whyDetails(variant, dominator, axes) {
+      if (derived) {
+        const body = htmlElement("div", { class: "why" });
+        body.append(htmlElement("p", {}, t("whyDerivedFrontier", { priorities: describePriorities(allocation) })));
+        return body;
+      }
       const { contributions, worstRegret } = variant.ranking;
       const limiting = worstRegret > 0 ? axes.filter((axis) => contributions[axis] === worstRegret) : [];
       const list = htmlElement("ul");
@@ -1272,13 +1302,13 @@ __RANKING_MODULE__
         tableCaption.textContent = t("captionEmpty");
         renderSummary();
         const row = htmlElement("tr", { class: "empty-row" });
-        row.append(htmlElement("td", { colspan: "6" }, t("emptyCreators")));
+        row.append(htmlElement("td", { colspan: derived ? "2" : "6" }, t("emptyCreators")));
         rowsBody.replaceChildren(row);
         flashTop = false;
         return;
       }
       const rows = ranking.map((variant, index) => ({ variant, rank: index + 1 }));
-      if (showDominated.checked) {
+      if (!derived && showDominated.checked) {
         const dominated = eligible.filter((variant) => !frontier.includes(variant));
         rankVariants(dominated, allocation, axes, reference).forEach((variant) => {
           rows.push({ variant, dominator: dominatorOf(variantsById.get(variant.id), eligible, axes) });
@@ -1288,7 +1318,7 @@ __RANKING_MODULE__
       const shown = rows.filter(({ variant }) => query === ""
         || variant.name.toLowerCase().includes(query)
         || variant.creator.toLowerCase().includes(query));
-      const ranges = metricRanges(shown.map(({ variant }) => variant));
+      const ranges = derived ? undefined : metricRanges(shown.map(({ variant }) => variant));
 
       const caption = t(ranking.length === 1 ? "captionOne" : "caption", { count: ranking.length, top: ranking[0].name });
       tableCaption.textContent = query ? t("captionShown", { caption, shown: shown.length }) : caption;
@@ -1317,11 +1347,13 @@ __RANKING_MODULE__
         row.append(
           htmlElement("td", { class: "rank" }, rank ? String(rank) : t("dominatedRank")),
           modelCell,
-          ...AXES.map((axis) => metricCell(ranges[axis], variant.metrics[axis], formatMetric[axis](variant.metrics[axis]))),
-          htmlElement("td", { class: "regret" }, formatRegret(variant.ranking.worstRegret)),
+          ...(derived ? [] : [
+            ...AXES.map((axis) => metricCell(ranges[axis], variant.metrics[axis], formatMetric[axis](variant.metrics[axis]))),
+            htmlElement("td", { class: "regret" }, formatRegret(variant.ranking.worstRegret)),
+          ]),
         );
         const detail = htmlElement("tr", { class: "why-row", id: `why-${index}` });
-        const detailCell = htmlElement("td", { colspan: "6" });
+        const detailCell = htmlElement("td", { colspan: derived ? "2" : "6" });
         detail.hidden = !open;
         if (open) detailCell.append(whyDetails(variant, dominator, axes));
         detail.append(detailCell);
@@ -1497,7 +1529,11 @@ __RANKING_MODULE__
     document.querySelector("#creators-all").addEventListener("click", () => setCreators(new Set(creatorNames)));
     document.querySelector("#creators-none").addEventListener("click", () => setCreators(new Set()));
 
-    const source = { name: catalog.name, version: catalog.version, date: catalog.generatedAt.slice(0, 10), attribution: catalog.attribution };
+    const source = {
+      name: catalog.name, version: catalog.version, date: catalog.generatedAt.slice(0, 10), attribution: catalog.attribution,
+      provider: catalog.name === "Artificial Analysis Intelligence Index" ? "Artificial Analysis" : catalog.name,
+    };
+    if (derived) document.querySelector('[data-i18n="winnerNote"]').textContent = t("winnerNote", source);
     document.querySelector("#source-note").textContent = t(catalog.attribution ? "footerSourceAttributed" : "footerSource", source);
 
     function paragraph(text, href, linkText) {
@@ -1522,6 +1558,10 @@ __RANKING_MODULE__
         }),
       ]],
       [t("explainDataTitle"), [
+        ...(derived ? [
+          paragraph(t("derivedAttribution", source), catalog.metricDefinitions.smart.methodologyUrl, t("methodologyLink")),
+          paragraph(t("derivedNonEndorsement", source)),
+        ] : []),
         paragraph(
           [t("explainData", source), catalog.attribution && t("explainAttribution", source)].filter(Boolean).join(" "),
           catalog.termsUrl,

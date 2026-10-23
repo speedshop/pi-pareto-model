@@ -7,6 +7,7 @@ import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
+import { deriveRankings, validateDerivedRankings } from "../src/derived-rankings.js";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const DEFAULT_OUTPUT = join(ROOT, "preset-map.html");
@@ -23,6 +24,8 @@ const VALUE_OPTIONS = {
   "--output": "output",
   "--template": "template",
   "--strings": "strings",
+  "--rankings": "rankings",
+  "--export-rankings": "exportRankings",
 };
 
 function parseArguments(argv) {
@@ -31,6 +34,7 @@ function parseArguments(argv) {
     const argument = argv[index];
     if (argument === "--help") options.help = true;
     else if (argument === "--allow-restricted") options.allowRestricted = true;
+    else if (argument === "--derived") options.derived = true;
     else if (argument === "--url" && argv[index + 1]) {
       options.url = argv[index + 1];
       index += 1;
@@ -39,6 +43,11 @@ function parseArguments(argv) {
       index += 1;
     } else throw new Error(`Unknown or incomplete argument: ${argument}`);
   }
+  if (options.rankings && (options.catalog || options.url || options.config || options.derived || options.allowRestricted)) {
+    throw new Error("--rankings cannot be combined with a raw catalog source, --derived, or --allow-restricted.");
+  }
+  if (options.exportRankings && !options.derived) throw new Error("--export-rankings requires --derived.");
+  if (options.derived && options.allowRestricted) throw new Error("--derived does not need or accept --allow-restricted.");
   return options;
 }
 
@@ -55,7 +64,10 @@ Options:
   --output PATH         HTML output (default: preset-map.html)
   --template PATH       HTML template override
   --strings PATH        Override page text with keys from this JSON file
-  --allow-restricted    Build from a catalog that does not allow redistribution
+  --allow-restricted    Build a private measured page from a restricted catalog
+  --derived             Publish only privately calculated frontier rank orders
+  --export-rankings PATH Write the validated measurement-free snapshot with --derived
+  --rankings PATH       Build from a validated measurement-free snapshot
   --help                Show this help
 `);
 }
@@ -153,8 +165,9 @@ function checkRedistribution(catalog, allowRestricted) {
   ].join("\n"));
 }
 
-async function loadStrings(path) {
+async function loadStrings(path, derived) {
   const strings = JSON.parse(await readFile(DEFAULT_STRINGS, "utf8"));
+  if (derived) Object.assign(strings, JSON.parse(await readFile(join(ROOT, "visualization", "strings", "derived.json"), "utf8")));
   if (!path) return strings;
   const overrides = JSON.parse(await readFile(path, "utf8"));
   const unknown = Object.keys(overrides).filter((key) => !Object.hasOwn(strings, key));
@@ -203,22 +216,42 @@ async function main() {
     return;
   }
 
+  const derived = Boolean(options.derived || options.rankings);
   const [strings, catalog, template, rankingModule] = await Promise.all([
-    loadStrings(options.strings),
-    loadCatalog(options),
+    loadStrings(options.strings, derived),
+    options.rankings ? readFile(options.rankings, "utf8").then(JSON.parse) : loadCatalog(options),
     readFile(options.template, "utf8"),
     readFile(RANKING_MODULE, "utf8"),
   ]);
-  await validateCatalog(catalog);
-  checkRedistribution(catalog, options.allowRestricted);
+  let data;
+  if (options.rankings) {
+    data = catalog;
+  } else {
+    await validateCatalog(catalog);
+    if (!derived) checkRedistribution(catalog, options.allowRestricted);
+    data = derived ? deriveRankings(mapData(catalog)) : mapData(catalog);
+  }
+  if (derived) await validateDerivedRankings(data);
+  const brand = derived && data.catalog.name === "Artificial Analysis Intelligence Index"
+    ? await readFile(join(ROOT, "visualization", "artificial-analysis-brand.html"), "utf8") : "";
+  const editionLink = derived
+    ? '<a href="https://speedshop.github.io/pi-pareto-model/">DeepSWE edition</a>'
+    : '<a href="https://speedshop.github.io/pi-pareto-model/aa/">Artificial Analysis-derived rankings</a>';
   const embed = (value) => JSON.stringify(value).replaceAll("<", "\\u003c");
   const html = [
     ["__RANKING_MODULE__", rankingModule.replace(/^export /gm, "")],
-    ["__PRESET_MAP_DATA__", embed(mapData(catalog))],
+    ["__PRESET_MAP_DATA__", embed(data)],
     ["__STRINGS__", embed(strings)],
+    ["__SOURCE_BRAND__", brand],
+    ["__EDITION_LINK__", editionLink],
   ].reduce((page, [marker, value]) => fill(page, marker, value), template);
+  if (derived) {
+    const embedded = JSON.parse(html.match(/const mapData = (.*);\n/)[1]);
+    await validateDerivedRankings(embedded);
+  }
+  if (options.exportRankings) await writeFile(options.exportRankings, `${JSON.stringify(data)}\n`, "utf8");
   await writeFile(options.output, html, "utf8");
-  console.log(`Built ${options.output} with ${catalog.variants.length} variants from ${catalog.catalog.name}.`);
+  console.log(`Built ${options.output} with ${data.variants.length} variants from ${data.catalog.name}${derived ? " (derived rankings only; no source measurements)" : ""}.`);
 }
 
 try {

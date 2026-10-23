@@ -55,6 +55,13 @@ jobs:
         if: steps.prepare.outputs.deploy == 'true'
         run: node scripts/build-preset-map.mjs --catalog "$RUNNER_TEMP/catalog.json" --output "$RUNNER_TEMP/site/index.html"
 
+      - name: Build and verify AA-derived edition
+        if: steps.prepare.outputs.deploy == 'true'
+        run: |
+          mkdir -p "$RUNNER_TEMP/site/aa"
+          node scripts/build-preset-map.mjs --rankings data/aa-rankings.json --output "$RUNNER_TEMP/site/aa/index.html"
+          node scripts/check-derived-page.mjs "$RUNNER_TEMP/site/aa/index.html"
+
       - name: Upload Pages artifact
         if: steps.prepare.outputs.deploy == 'true'
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4

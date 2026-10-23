@@ -17,9 +17,12 @@ flag "--allow-restricted"
 run = 'node scripts/build-preset-map.mjs --url "$usage_url" --output "$usage_output"${usage_strings:+ --strings "$usage_strings"}${usage_allow_restricted:+ --allow-restricted}'
 
 [tasks."build:aa"]
-description = "Build a private page from the Artificial Analysis catalog via gh"
-run = """
-mkdir -p tmp
-gh api repos/speedshop/aa-catalog-digest/contents/catalog/model-selection-catalog.json -H 'Accept: application/vnd.github.raw+json' > tmp/aa-catalog.json
-node scripts/build-preset-map.mjs --catalog tmp/aa-catalog.json --allow-restricted --output preset-map-aa.html
-"""
+description = "Build the AA-derived page from the measurement-free snapshot"
+run = "node scripts/build-preset-map.mjs --rankings data/aa-rankings.json --output preset-map-aa.html && node scripts/check-derived-page.mjs preset-map-aa.html"
+
+[tasks."refresh:aa"]
+description = "Privately recompute the published AA frontier ranking snapshot from a local catalog"
+usage = '''
+flag "--catalog <catalog>" default="tmp/aa-catalog.json"
+'''
+run = 'node scripts/build-preset-map.mjs --catalog "$usage_catalog" --derived --export-rankings data/aa-rankings.json --output preset-map-aa.html && node scripts/check-derived-page.mjs preset-map-aa.html'

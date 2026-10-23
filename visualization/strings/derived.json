@@ -1,0 +1,26 @@
+{
+  "pageTitle": "Derived Pareto rankings by Speedshop",
+  "heading": "Pick a model by what you care about",
+  "winnerNote": "Based on data from {provider}. Rankings and visualization by Speedshop, not endorsed by {provider}. Underlying scores, times, costs, and numeric regret values are not published.",
+  "creatorsHint": "Only models from checked creators can win a hexagon or appear in the table. This filter narrows the published Full Catalog frontier rankings; it does not recalculate a new frontier. Models dominated in the Full Catalog remain excluded. The search box below only filters the table.",
+  "summaryEmpty": "No published frontier models from these creators",
+  "captionEmpty": "No published frontier models from these creators.",
+  "emptyCreators": "No published frontier models from the checked creators. Select more creators to see a ranking.",
+  "whyIntro": "Rank order is calculated privately by Speedshop using Pareto efficiency and preference-weighted minimax regret. Source measurements and numeric regret values are not published.",
+  "explainRanking": [
+    "Speedshop calculates these rankings privately from the source catalog. First it drops every model that another Full Catalog model matches or beats on every axis you consider and beats on at least one. The models left over form the Pareto frontier. An axis is not considered when your priorities sit on the triangle's edge opposite its corner.",
+    "The frontier is then sorted by interquartile minimax regret, weighting each axis by how much it matters in your priorities. Ties go to lower mean weighted regret, then model name. The resulting orders are Speedshop's analysis, not the source provider's published rankings or recommendations.",
+    "Each hexagon is one mix of priorities. Click or tap a hexagon, or drag the ring to fine-tune priorities in quarter-step increments. Every supported mix has a precomputed frontier rank order.",
+    "Colors group models by creator and model family. Higher recognized thinking levels use darker shades within a family. Colors identify models; they do not encode benchmark measurements.",
+    "Creator filters narrow the published Full Catalog frontier rankings. They do not recalculate a frontier among the checked creators: a model dominated in the Full Catalog remains excluded even when its dominator's creator is unchecked. The triangle shows the first checked model in each published ranking. Search only narrows the table."
+  ],
+  "explainRegret": [
+    "During the private calculation, each model's gap from the best Full Catalog frontier value is divided by that frontier's interquartile range. Time uses a logarithmic scale. The largest preference-weighted gap determines rank, with ties resolved by the mean weighted gap and then model name.",
+    "This page contains only the resulting frontier orders. It does not expose gaps, normalization constants, source measurements, adjustment factors, numeric regret scores, or full-catalog single-axis comparisons."
+  ],
+  "explainMetricsIntro": "The three priorities refer to the source's measures described below. Their numerical values remain private. Model configurations with missing required measurements are not included in the source catalog. Some Time and Cost inputs are estimates adjusted from earlier benchmark versions; those adjustments are described by the source catalog methodology, not published as measurements here.",
+  "explainEmbedded": "The embedded snapshot contains model labels, source metadata, and Speedshop's precomputed frontier rank orders. It contains no underlying source measurements or numeric ranking scores. The page makes no network requests and can be used offline. The snapshot date above is not a promise of live data; a new snapshot must be generated to pick up changes.",
+  "footerMethod": "Rankings and visualization by Speedshop. Pareto frontier, then preference-weighted minimax regret.",
+  "footerSource": "Based on data from {name}, version {version}. Snapshot generated {date}.",
+  "footerSourceAttributed": "Based on data from {name}, version {version}. Snapshot generated {date}. Not endorsed by {provider}."
+}
