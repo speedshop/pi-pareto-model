@@ -36,9 +36,11 @@ try {
   const html = readFileSync(page, "utf8");
   const data = JSON.parse(readFileSync(snapshot, "utf8"));
   assert.deepEqual(JSON.parse(html.match(/const mapData = (.*);\n/)[1]), data);
-  assert.equal(data.kind, "derived-rankings-v1");
+  assert.equal(data.kind, "derived-rankings-v2");
   assert.equal(Object.keys(data.orders).length, 1225);
-  assert.equal(Object.hasOwn(data, "dominators"), false);
+  assert.equal(Object.keys(data.dominators).length, 7);
+  for (const order of Object.values(data.orders)) assert.equal(order.length, catalog.variants.length);
+  assert.match(html, /document.querySelector\("#show-dominated"\).checked = true/);
   assert.match(html, /Based on data from Artificial Analysis/);
   assert.match(html, /do not represent the views or endorsement/);
   assert.match(html, /M13\.982 16h1\.996/);
@@ -70,6 +72,12 @@ try {
   const invalidOrder = spawnSync(process.execPath, [build, "--rankings", unsafe, "--output", rebuilt], { encoding: "utf8" });
   assert.notEqual(invalidOrder.status, 0);
   assert.match(invalidOrder.stderr, /Invalid derived ranking order/);
+  data.orders["0,0"] = data.variants.map((_variant, index) => index);
+  data.dominators.smart[0] = [0];
+  writeFileSync(unsafe, JSON.stringify(data));
+  const invalidDominators = spawnSync(process.execPath, [build, "--rankings", unsafe, "--output", rebuilt], { encoding: "utf8" });
+  assert.notEqual(invalidDominators.status, 0);
+  assert.match(invalidDominators.stderr, /Invalid derived dominators/);
   console.log("Derived-page CLI end-to-end checks passed: restricted source stays private, safe snapshots rebuild identically, and unsafe artifacts fail closed.");
 } finally {
   rmSync(directory, { recursive: true, force: true });

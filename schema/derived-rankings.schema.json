@@ -3,9 +3,9 @@
   "title": "Derived rankings without source measurements",
   "type": "object",
   "additionalProperties": false,
-  "required": ["kind", "catalog", "variants", "orders"],
+  "required": ["kind", "catalog", "variants", "orders", "dominators"],
   "properties": {
-    "kind": { "const": "derived-rankings-v1" },
+    "kind": { "const": "derived-rankings-v2" },
     "catalog": {
       "type": "object",
       "additionalProperties": false,
@@ -40,6 +40,17 @@
           "name": { "type": "string", "minLength": 1 },
           "creator": { "type": "string", "minLength": 1 },
           "reasoning": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "dominators": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "integer", "minimum": 0 }
         }
       }
     },

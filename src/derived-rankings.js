@@ -1,17 +1,20 @@
 import { readFile } from "node:fs/promises";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
-import { AXES, POWER_STEP, TOTAL_POWER, paretoFront, rankVariants } from "./ranking.js";
+import { AXES, POWER_STEP, TOTAL_POWER, dominatorOf, paretoFront, rankVariants } from "./ranking.js";
 
-export const DERIVED_KIND = "derived-rankings-v1";
+export const DERIVED_KIND = "derived-rankings-v2";
 
 export function deriveRankings(data) {
   const indexes = new Map(data.variants.map((variant, index) => [variant.id, index]));
   const frontiers = new Map();
+  const dominators = {};
   for (let mask = 1; mask < 2 ** AXES.length; mask += 1) {
     const axes = AXES.filter((_axis, index) => mask & (1 << index));
     const key = axes.join(",");
     frontiers.set(key, paretoFront(data.variants, axes));
+    dominators[key] = data.variants.map((variant) => data.variants.flatMap((other, index) =>
+      dominatorOf(variant, [other], axes) ? [index] : []));
   }
   const orders = {};
   const steps = TOTAL_POWER / POWER_STEP;
@@ -20,7 +23,7 @@ export function deriveRankings(data) {
       const allocation = { smart: smart * POWER_STEP, fast: fast * POWER_STEP, cheap: (steps - smart - fast) * POWER_STEP };
       const axes = AXES.filter((axis) => allocation[axis] > 0);
       const frontier = frontiers.get(axes.join(","));
-      orders[`${allocation.smart},${allocation.fast}`] = rankVariants(frontier, allocation, axes, frontier)
+      orders[`${allocation.smart},${allocation.fast}`] = rankVariants(data.variants, allocation, axes, frontier)
         .map((variant) => indexes.get(variant.id));
     }
   }
@@ -29,6 +32,7 @@ export function deriveRankings(data) {
     catalog: data.catalog,
     variants: data.variants.map(({ id, name, creator, reasoning }) => ({ id, name, creator, ...(reasoning ? { reasoning } : {}) })),
     orders,
+    dominators,
   };
 }
 
@@ -53,10 +57,21 @@ function checkDerivedIndexes(data) {
       const key = `${smart * POWER_STEP},${fast * POWER_STEP}`;
       expectedOrders.add(key);
       const order = data.orders[key];
-      if (!order || !order.length || new Set(order).size !== order.length || !order.every(validIndex)) {
+      if (!order || order.length !== count || new Set(order).size !== count || !order.every(validIndex)) {
         throw new Error(`Invalid derived ranking order at ${key}.`);
       }
     }
   }
   if (Object.keys(data.orders).some((key) => !expectedOrders.has(key))) throw new Error("Unexpected derived ranking allocation.");
+  const expectedAxes = new Set();
+  for (let mask = 1; mask < 2 ** AXES.length; mask += 1) {
+    const key = AXES.filter((_axis, index) => mask & (1 << index)).join(",");
+    expectedAxes.add(key);
+    const relations = data.dominators[key];
+    if (!relations || relations.length !== count || relations.some((indexes, index) =>
+      new Set(indexes).size !== indexes.length || !indexes.every(validIndex) || indexes.includes(index))) {
+      throw new Error(`Invalid derived dominators at ${key}.`);
+    }
+  }
+  if (Object.keys(data.dominators).some((key) => !expectedAxes.has(key))) throw new Error("Unexpected derived dominance axes.");
 }
