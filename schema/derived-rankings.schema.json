@@ -5,7 +5,7 @@
   "additionalProperties": false,
   "required": ["kind", "catalog", "variants", "orders", "dominators"],
   "properties": {
-    "kind": { "const": "derived-rankings-v2" },
+    "kind": { "const": "derived-rankings-v3" },
     "catalog": {
       "type": "object",
       "additionalProperties": false,
@@ -40,6 +40,20 @@
           "name": { "type": "string", "minLength": 1 },
           "creator": { "type": "string", "minLength": 1 },
           "reasoning": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "subscriptions": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["orders", "dominators"],
+        "properties": {
+          "orders": { "$ref": "#/properties/orders" },
+          "dominators": { "$ref": "#/properties/dominators" }
         }
       }
     },

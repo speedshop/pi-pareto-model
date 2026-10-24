@@ -1,6 +1,19 @@
 export const AXES = ["smart", "fast", "cheap"];
 export const TOTAL_POWER = 12;
 export const POWER_STEP = 0.25;
+export const SUBSCRIPTIONS = [
+  { name: "Anthropic", creators: ["Anthropic"] },
+  { name: "OpenAI", creators: ["OpenAI"] },
+  { name: "Google", creators: ["Google"] },
+  { name: "SpaceX", creators: ["SpaceXAI", "xAI"] },
+];
+
+export function subscriptionVariants(variants, mask) {
+  return variants.map((variant) => SUBSCRIPTIONS.some((subscription, index) =>
+    (mask & (1 << index)) && subscription.creators.includes(variant.creator))
+    ? { ...variant, metrics: { ...variant.metrics, cheap: variant.metrics.cheap / 5 } }
+    : variant);
+}
 
 function noWorse(left, right, axis) {
   return axis === "smart" ? left.metrics[axis] >= right.metrics[axis] : left.metrics[axis] <= right.metrics[axis];
