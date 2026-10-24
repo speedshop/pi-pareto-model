@@ -2,6 +2,7 @@ node_modules/
 .pi-subagents/
 .pi/pareto-model-picker.json
 preset-map*.html
+/preset-map*.data.json
 tmp/
 .DS_Store
 !visualization/preset-map.template.html

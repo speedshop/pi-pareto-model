@@ -4,8 +4,6 @@ export const POWER_STEP = 0.25;
 export const SUBSCRIPTIONS = [
   { name: "Anthropic", creators: ["Anthropic"] },
   { name: "OpenAI", creators: ["OpenAI"] },
-  { name: "Google", creators: ["Google"] },
-  { name: "SpaceX", creators: ["SpaceXAI", "xAI"] },
 ];
 
 export function subscriptionVariants(variants, mask) {

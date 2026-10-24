@@ -1,6 +1,6 @@
 # pi-pareto-model
 
-This project builds one self-contained HTML page for choosing a model along a 3-axis Pareto efficiency frontier.
+This project builds an HTML page and a sibling JSON data file for choosing a model along a 3-axis Pareto efficiency frontier. CSS and UI code stay in the HTML; model data is fetched from the JSON file.
 
 It compares each model variant (model and thinking level combo) with three measures:
 
@@ -10,7 +10,7 @@ It compares each model variant (model and thinking level combo) with three measu
 
 The page shows a triangle of priorities. Each corner stands for caring about one measure only, and each hexagon is a mix of the three, colored by the model that ranks first for that mix. Set your priorities on the triangle by clicking or dragging. Below the triangle, you can read the top model's actual Smart, Time, and Cost values, choose which creators' models may compete, and read the ranked frontier with an explanation for each row.
 
-The page hides any model which is Pareto-dominated by another (e.g., you should never use model X because model Y is as smart and as fast but cheaper). It computes the frontier and the ranking in the browser from an embedded copy of the catalog. It makes no network requests and needs no server.
+The page hides any model which is Pareto-dominated by another (e.g., you should never use model X because model Y is as smart and as fast but cheaper). It computes the frontier and the ranking in the browser from the JSON catalog beside the page. Serve both files over HTTP; the page makes no requests to model providers.
 
 Data is provided by DeepSWE, though you can substitute in your own source.
 
@@ -34,7 +34,8 @@ Data is provided by DeepSWE, though you can substitute in your own source.
 ```fish
 npm install
 mise run build
-open preset-map.html
+python3 -m http.server 8000 &
+open http://localhost:8000/preset-map.html
 ```
 
 Pass `--url` to build from a different catalog URL, `--output` to change the output path, `--strings` to change the page text, and `--allow-restricted` to build a private copy from a catalog that forbids redistribution:
@@ -53,10 +54,16 @@ The build:
 1. Loads the catalog from `--catalog` or `--url`, or from the configured file, GitHub, or HTTP source.
 2. Validates the catalog against the schema for its `schemaVersion`.
 3. Checks that the catalog allows redistribution.
-4. Embeds each variant's id, display name, creator, reasoning label and release date when present, and metrics, plus the catalog's name, version, generation date, attribution, terms URL, and metric definitions.
+4. Writes each variant's id, display name, creator, reasoning label and release date when present, and metrics, plus catalog metadata, to a sibling `.data.json` file.
 5. Inlines the ranking module from `src/ranking.js`.
 6. Embeds the page text from `visualization/strings/claudish.json`, with any `--strings` overrides applied.
-7. Writes `preset-map.html` and prints its path, variant count, and catalog name.
+7. Checks the combined gzip size of HTML and JSON, then writes both files and prints their paths, variant count, and catalog name.
+
+### Hard build limits
+
+Every build has a hard 10-minute deadline. A parent process terminates the build process and, on Unix, its subprocess group when the deadline expires, including during CPU-bound work or stalled I/O. The **sum of the separately gzipped HTML and JSON files must be at most 1,000,000 bytes (1 MB)**. Moving data between files does not change this combined budget. Oversized builds fail before writing HTML, JSON, or exported ranking snapshots. There is no CLI override for either limit.
+
+CI builds the actual AA snapshots to enforce the combined page limit before merge. The Pages workflow also stops on any failed build, before artifact upload or deployment.
 
 ### Options
 
@@ -65,18 +72,18 @@ The build:
 | `--catalog PATH` | Read a catalog file directly |
 | `--url URL` | Download the catalog from this URL |
 | `--config PATH` | Read the catalog source from this configuration file |
-| `--output PATH` | Write the HTML here (default: `preset-map.html`) |
+| `--output PATH` | Write HTML here and a sibling `<name>.data.json` file (default: `preset-map.html`) |
 | `--template PATH` | Use a different HTML template |
 | `--strings PATH` | Override page text with keys from this JSON file. See [Change the text](#change-the-text) |
 | `--allow-restricted` | Build a private measured page from a restricted catalog; do not publish it |
 | `--derived` | Precompute full rank orders and dominance relationships without publishing measurements |
-| `--export-rankings PATH` | With `--derived`, write the base snapshot and 15 subscription sibling snapshots |
-| `--rankings PATH` | Build from a base snapshot and its 15 subscription siblings instead of a raw catalog |
+| `--export-rankings PATH` | With `--derived`, write the base snapshot and three subscription sibling snapshots |
+| `--rankings PATH` | Build from a base snapshot and its three subscription siblings instead of a raw catalog |
 | `--help` | Show the options |
 
 ### Redistribution
 
-The default built page contains the catalog's metrics. Ship that measured page only when the catalog's `catalog.distribution.allowRedistribution` is `true`.
+The default built JSON contains the catalog's metrics. Ship that measured page and JSON only when the catalog's `catalog.distribution.allowRedistribution` is `true`.
 
 The build refuses a catalog whose `allowRedistribution` is `false`. It prints the catalog's attribution and terms URL instead. Pass `--allow-restricted` to build a private copy anyway, and do not publish that page.
 
@@ -94,7 +101,7 @@ The workflow runs only on `main`:
 
 The workflow downloads the catalog once and builds from those same bytes, so the recorded hash always matches the published page. A run that fails before deploying leaves the published `deployment.json` unchanged, so the next daily run tries again. A missing or unreadable `deployment.json` triggers a deploy. Any other failure to download the catalog or `deployment.json` fails the run instead of deploying stale data.
 
-The site holds only `index.html`, `aa/index.html`, and `deployment.json`. The generated pages are not committed.
+The site holds `index.html`, `index.data.json`, `aa/index.html`, `aa/index.data.json`, and `deployment.json`. Generated HTML and JSON are not committed.
 
 Before the first deploy, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**. The workflow does not enable Pages itself.
 
@@ -104,15 +111,16 @@ The AA edition uses Speedshop's privately computed rank orders, not a copy of AA
 
 Creator filters recalculate the frontier among the checked creators using the published dominance relationships. Models dominated in the Full Catalog can join the frontier when their dominators are unchecked. The triangle and table use this selected frontier, while rankings retain the same Full Catalog normalization reference as the measured edition. **Show dominated** is enabled by default and includes all other selected models below the ranked frontier, labeled with a selected model that dominates them. Uncheck it to see only frontier models. No numeric measurements are displayed.
 
-**My subscriptions** offers independent checkboxes for Anthropic, OpenAI, Google, and SpaceX (the catalog's SpaceXAI/xAI Grok models). Checking a provider assumes five times better cost value: the private calculation divides that provider's models' estimated costs by five before recomputing the frontier and ranking. This is a rough user-selected assumption, not measured subscription pricing or a promise of access to every model. All 16 combinations are precomputed, including no subscriptions. Creator filtering still works within each scenario; normalization uses that scenario's Full Catalog frontier. Smart and Time measurements do not change. Subscriptions start unchecked on each page load. The measured DeepSWE edition does not offer these controls.
+**My subscriptions** offers independent checkboxes for Anthropic and OpenAI. Checking a provider assumes five times better cost value: the private calculation divides that provider's models' estimated costs by five before recomputing the frontier and ranking. This is a rough user-selected assumption, not measured subscription pricing or a promise of access to every model. All four combinations are precomputed, including no subscriptions. Creator filtering still works within each scenario; normalization uses that scenario's Full Catalog frontier. Smart and Time measurements do not change. Subscriptions start unchecked on each page load. The measured DeepSWE edition does not offer these controls.
 
-The extra scenarios reveal additional relative ordering and dominance information, but not source measurements. The browser still receives one self-contained HTML file with all scenarios embedded; no additional data requests are needed.
+The extra scenarios reveal additional relative ordering and dominance information, but not source measurements. The browser receives the HTML with integrated CSS and UI code, then fetches one sibling JSON file containing all four scenarios. Both files together must fit the 1 MB gzip budget.
 
 Build the current snapshot without accessing the private source:
 
 ```fish
 mise run build:aa
-open preset-map-aa.html
+python3 -m http.server 8000 &
+open http://localhost:8000/preset-map-aa.html
 ```
 
 To refresh it, first obtain the private catalog locally and keep it in a gitignored location. Then run:
@@ -121,7 +129,7 @@ To refresh it, first obtain the private catalog locally and keep it in a gitigno
 mise run refresh:aa --catalog tmp/aa-catalog.json
 ```
 
-This privately computes rankings, writes the base snapshot `data/aa-rankings.json` and 15 sibling files named `data/aa-rankings.json.subscriptions-1.json` through `data/aa-rankings.json.subscriptions-15.json`, and builds and verifies `preset-map-aa.html`. Subscription masks use Anthropic = 1, OpenAI = 2, Google = 4, and SpaceX = 8; combinations add these values. All sibling files must be present and share the same catalog metadata and model labels. Commit all 16 derived snapshots together, never the raw catalog or a page built with `--allow-restricted`. The public Pages workflow rebuilds from the committed snapshot and verifies its embedded data against an allowlist schema before uploading. Unknown fields, including a `metrics` object, fail the build. Daily publishing still refreshes DeepSWE automatically; AA updates require a newly generated snapshot and a commit.
+This privately computes rankings, writes the base snapshot `data/aa-rankings.json` and three sibling files named `data/aa-rankings.json.subscriptions-1.json` through `data/aa-rankings.json.subscriptions-3.json`, and builds and verifies `preset-map-aa.html` and `preset-map-aa.data.json`. Subscription masks use Anthropic = 1 and OpenAI = 2; both together = 3. All sibling files must be present and share the same catalog metadata and model labels. Commit all four derived snapshots together, never the raw catalog or a page built with `--allow-restricted`. The public Pages workflow rebuilds from the committed snapshots and verifies the fetched JSON against an allowlist schema before uploading. Unknown fields, including a `metrics` object, fail the build. Daily publishing still refreshes DeepSWE automatically; AA updates require a newly generated snapshot and a commit.
 
 The AA chart includes the logo reproduced from [AA's website](https://artificialanalysis.ai/). Visible attribution says "Based on data from Artificial Analysis," identifies Speedshop as the author of the visualization and rankings, and disclaims AA endorsement. The source terms remain linked. Publishing this edition relies on the chart/Derived Data permissions in [AA's Data Platform Terms](https://artificialanalysiscdn.com/legal/ProDataPlatformTerms.pdf); removing measurements is not a waiver of those terms or a claim that AA has approved an interactive selection service. The interaction with the competitive-use restriction remains unresolved.
 

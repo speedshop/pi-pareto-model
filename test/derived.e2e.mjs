@@ -14,6 +14,7 @@ const run = (script, args) => execFileSync(process.execPath, [script, ...args], 
 
 try {
   const catalog = JSON.parse(readFileSync(join(root, "test", "fixtures", "model-selection-catalog.json"), "utf8"));
+  catalog.variants = catalog.variants.slice(0, 4);
   catalog.catalog.name = "Artificial Analysis Intelligence Index";
   catalog.catalog.distribution = {
     classification: "restricted",
@@ -23,7 +24,7 @@ try {
   };
   catalog.catalog.provenance = { privateMarker: "PRIVATE_SOURCE_PAYLOAD_MUST_NOT_PUBLISH" };
   catalog.variants.forEach((variant, index) => {
-    variant.creator = ["Anthropic", "OpenAI", "Google", "SpaceXAI"][index % 4];
+    variant.creator = ["Anthropic", "OpenAI"][index % 2];
     variant.metrics = { smart: 25.718392 + index, fast: 42.928371 + index, cheap: 0.008174 + index };
     variant.provenance.privateMarker = "PRIVATE_TRIAL_DETAILS_MUST_NOT_PUBLISH";
   });
@@ -37,16 +38,19 @@ try {
 
   run(build, ["--catalog", source, "--derived", "--export-rankings", snapshot, "--output", page]);
   const html = readFileSync(page, "utf8");
+  const jsonPath = join(directory, "derived.data.json");
+  const json = readFileSync(jsonPath, "utf8");
   const data = await loadDerivedRankings(snapshot);
-  assert.deepEqual(JSON.parse(html.match(/const mapData = (.*);\n/)[1]), data);
+  assert.match(html, /const mapData = await loadMapData\("derived.data.json"\);/);
+  assert.deepEqual(JSON.parse(json), data);
   assert.equal(data.kind, "derived-rankings-v3");
-  assert.equal(data.subscriptions.length, 15);
+  assert.equal(data.subscriptions.length, 3);
   let changed = false;
-  for (let mask = 0; mask < 16; mask += 1) {
+  for (let mask = 0; mask < 4; mask += 1) {
     const scenario = mask === 0 ? data : data.subscriptions[mask - 1];
     const variants = catalog.variants.map((variant, index) => ({
       id: variant.id, name: variant.displayName,
-      metrics: { ...variant.metrics, cheap: variant.metrics.cheap / ((mask & (1 << (index % 4))) ? 5 : 1) },
+      metrics: { ...variant.metrics, cheap: variant.metrics.cheap / ((mask & (1 << (index % 2))) ? 5 : 1) },
     }));
     for (const [key, order] of Object.entries(scenario.orders)) {
       const [smart, fast] = key.split(",").map(Number);
@@ -70,15 +74,20 @@ try {
   assert.match(html, /M13\.982 16h1\.996/);
   for (const marker of ["PRIVATE_SOURCE_PAYLOAD_MUST_NOT_PUBLISH", "PRIVATE_TRIAL_DETAILS_MUST_NOT_PUBLISH"]) {
     assert.equal(html.includes(marker), false);
+    assert.equal(json.includes(marker), false);
     assert.equal(readFileSync(snapshot, "utf8").includes(marker), false);
   }
   for (const variant of catalog.variants) {
-    for (const value of [...Object.values(variant.metrics), variant.metrics.cheap / 5]) assert.equal(html.includes(String(value)), false);
+    for (const value of [...Object.values(variant.metrics), variant.metrics.cheap / 5]) {
+      assert.equal(html.includes(String(value)), false);
+      assert.equal(json.includes(String(value)), false);
+    }
   }
   run(check, [page]);
   const rebuilt = join(directory, "rebuilt.html");
   run(build, ["--rankings", snapshot, "--output", rebuilt]);
-  assert.equal(readFileSync(rebuilt, "utf8"), html);
+  assert.equal(readFileSync(rebuilt, "utf8"), html.replace('loadMapData("derived.data.json")', 'loadMapData("rebuilt.data.json")'));
+  assert.equal(readFileSync(join(directory, "rebuilt.data.json"), "utf8"), json);
 
   const complete = structuredClone(data);
   delete data.subscriptions;
@@ -89,7 +98,8 @@ try {
   assert.notEqual(rejected.status, 0);
   assert.match(rejected.stderr, /Invalid derived rankings/);
   const tampered = join(directory, "tampered.html");
-  writeFileSync(tampered, html.replace(/const mapData = .*;\n/, `const mapData = ${JSON.stringify({ ...complete, variants: data.variants })};\n`));
+  writeFileSync(tampered, html.replace('loadMapData("derived.data.json")', 'loadMapData("tampered.data.json")'));
+  writeFileSync(join(directory, "tampered.data.json"), JSON.stringify({ ...complete, variants: data.variants }));
   assert.notEqual(spawnSync(process.execPath, [check, tampered]).status, 0);
 
   delete data.variants[0].metrics;
@@ -104,7 +114,7 @@ try {
   const invalidDominators = spawnSync(process.execPath, [build, "--rankings", unsafe, "--output", rebuilt], { encoding: "utf8" });
   assert.notEqual(invalidDominators.status, 0);
   assert.match(invalidDominators.stderr, /Invalid derived dominators/);
-  const damagedScenario = `${snapshot}.subscriptions-15.json`;
+  const damagedScenario = `${snapshot}.subscriptions-3.json`;
   const damaged = JSON.parse(readFileSync(damagedScenario, "utf8"));
   damaged.orders["0,0"].pop();
   writeFileSync(damagedScenario, JSON.stringify(damaged));
