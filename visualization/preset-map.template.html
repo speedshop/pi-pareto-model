@@ -710,11 +710,11 @@ __RANKING_MODULE__
     const mapData = __PRESET_MAP_DATA__;
     const strings = __STRINGS__;
     const { catalog, variants } = mapData;
-    const derived = mapData.kind === "derived-rankings-v1";
+    const derived = mapData.kind === "derived-rankings-v2";
     if (derived) {
       document.body.classList.add("rankings-only");
       document.querySelectorAll("thead th:nth-child(n + 3), #winner-metrics, #summary-axes").forEach((element) => element.remove());
-      document.querySelector("#show-dominated").closest("label").hidden = true;
+      document.querySelector("#show-dominated").checked = true;
     }
 
     function t(key, vars = {}) {
@@ -937,12 +937,20 @@ __RANKING_MODULE__
     let selectedCreators = readCreators();
     let eligible = variants.filter((variant) => selectedCreators.has(variant.creator));
 
+    const variantIndexes = new Map(variants.map((variant, index) => [variant.id, index]));
+
+    function derivedDominator(variant, axes) {
+      return mapData.dominators[axes.join(",")][variantIndexes.get(variant.id)]
+        .map((index) => variants[index]).find((other) => selectedCreators.has(other.creator));
+    }
+
     function ranked(allocation) {
       const axes = enabledAxes(allocation);
       if (derived) {
-        const ranking = mapData.orders[`${allocation.smart},${allocation.fast}`]
+        const order = mapData.orders[`${allocation.smart},${allocation.fast}`]
           .map((index) => variants[index]).filter((variant) => selectedCreators.has(variant.creator));
-        return { axes, frontier: ranking, ranking };
+        const frontier = order.filter((variant) => !derivedDominator(variant, axes));
+        return { axes, frontier, ranking: frontier, order };
       }
       const reference = paretoFront(variants, axes);
       const frontier = paretoFront(eligible, axes);
@@ -1292,7 +1300,7 @@ __RANKING_MODULE__
     }
 
     function renderTable() {
-      const { axes, reference, frontier, ranking } = ranked(allocation);
+      const { axes, reference, frontier, ranking, order } = ranked(allocation);
       if (ranking.length === 0) {
         tableCaption.textContent = t("captionEmpty");
         renderSummary();
@@ -1303,10 +1311,11 @@ __RANKING_MODULE__
         return;
       }
       const rows = ranking.map((variant, index) => ({ variant, rank: index + 1 }));
-      if (!derived && showDominated.checked) {
-        const dominated = eligible.filter((variant) => !frontier.includes(variant));
-        rankVariants(dominated, allocation, axes, reference).forEach((variant) => {
-          rows.push({ variant, dominator: dominatorOf(variantsById.get(variant.id), eligible, axes) });
+      if (showDominated.checked) {
+        const dominated = (derived ? order : eligible).filter((variant) => !frontier.includes(variant));
+        const rankedDominated = derived ? dominated : rankVariants(dominated, allocation, axes, reference);
+        rankedDominated.forEach((variant) => {
+          rows.push({ variant, dominator: derived ? derivedDominator(variant, axes) : dominatorOf(variantsById.get(variant.id), eligible, axes) });
         });
       }
       const query = search.value.trim().toLowerCase();

@@ -65,7 +65,7 @@ Options:
   --template PATH       HTML template override
   --strings PATH        Override page text with keys from this JSON file
   --allow-restricted    Build a private measured page from a restricted catalog
-  --derived             Publish only privately calculated frontier rank orders
+  --derived             Publish full rank orders and dominance relationships, not measurements
   --export-rankings PATH Write the validated measurement-free snapshot with --derived
   --rankings PATH       Build from a validated measurement-free snapshot
   --help                Show this help

@@ -69,7 +69,7 @@ The build:
 | `--template PATH` | Use a different HTML template |
 | `--strings PATH` | Override page text with keys from this JSON file. See [Change the text](#change-the-text) |
 | `--allow-restricted` | Build a private measured page from a restricted catalog; do not publish it |
-| `--derived` | Precompute frontier rank orders without publishing measurements |
+| `--derived` | Precompute full rank orders and dominance relationships without publishing measurements |
 | `--export-rankings PATH` | With `--derived`, write the validated measurement-free snapshot |
 | `--rankings PATH` | Build from a validated measurement-free snapshot instead of a raw catalog |
 | `--help` | Show the options |
@@ -100,9 +100,9 @@ Before the first deploy, set **Settings → Pages → Build and deployment → S
 
 ## AA-derived edition
 
-The AA edition uses Speedshop's privately computed frontier rank orders, not a copy of AA's leaderboard rankings. It retains triangle selection at quarter-step resolution, creator filtering, and search. It publishes model names and reasoning labels, frontier orderings for all 1,225 priority mixes, and source metadata. It does not publish AA measurements, adjustment factors, metric provenance, normalization constants, numeric regret scores, or full-catalog single-axis comparisons. The top-model card and table omit measurement columns, including on mobile. This edition has no **Why this model?** dropdowns.
+The AA edition uses Speedshop's privately computed rank orders, not a copy of AA's leaderboard rankings. It retains triangle selection at quarter-step resolution, creator filtering, and search. It publishes model names and reasoning labels, full orderings for all 1,225 priority mixes, dominance relationships for all seven nonempty axis combinations, and source metadata. It does not publish AA measurements, adjustment factors, metric provenance, normalization constants, or numeric regret scores. The top-model card and table omit measurement columns, including on mobile. This edition has no **Why this model?** dropdowns.
 
-In this edition, creator filters only narrow the published Full Catalog frontier rankings. They do not recalculate a frontier from the checked creators, and models dominated in the Full Catalog remain excluded. The triangle follows the filtered published ranking. The AA edition does not offer **Show dominated**.
+Creator filters recalculate the frontier among the checked creators using the published dominance relationships. Models dominated in the Full Catalog can join the frontier when their dominators are unchecked. The triangle and table use this selected frontier, while rankings retain the same Full Catalog normalization reference as the measured edition. **Show dominated** is enabled by default and includes all other selected models below the ranked frontier, labeled with a selected model that dominates them. Uncheck it to see only frontier models. No numeric measurements are displayed.
 
 Build the current snapshot without accessing the private source:
 
