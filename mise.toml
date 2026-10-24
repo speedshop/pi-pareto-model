@@ -21,7 +21,7 @@ description = "Build the AA-derived page from all measurement-free subscription 
 run = "node scripts/build-preset-map.mjs --rankings data/aa-rankings.json --output preset-map-aa.html && node scripts/check-derived-page.mjs preset-map-aa.html"
 
 [tasks."refresh:aa"]
-description = "Privately recompute all 16 AA subscription snapshots from a local catalog"
+description = "Privately recompute all four AA subscription snapshots from a local catalog"
 usage = '''
 flag "--catalog <catalog>" default="tmp/aa-catalog.json"
 '''

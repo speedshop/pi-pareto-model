@@ -45,8 +45,8 @@
     },
     "subscriptions": {
       "type": "array",
-      "minItems": 15,
-      "maxItems": 15,
+      "minItems": 3,
+      "maxItems": 3,
       "items": {
         "type": "object",
         "additionalProperties": false,

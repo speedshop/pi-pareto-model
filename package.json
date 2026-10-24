@@ -1,7 +1,7 @@
 {
   "name": "pi-pareto-model",
   "version": "0.1.0",
-  "description": "Standalone HTML Pareto triangle for choosing models by Smart, Time, and Cost",
+  "description": "HTML and JSON Pareto triangle for choosing models by Smart, Time, and Cost",
   "type": "module",
   "license": "MIT",
   "keywords": ["model-selection", "pareto"],

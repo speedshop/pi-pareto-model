@@ -77,7 +77,7 @@ export async function validateDerivedRankings(data, requireSubscriptions = true)
   const validate = ajv.compile(schema);
   if (!validate(data)) throw new Error(`Invalid derived rankings: ${ajv.errorsText(validate.errors)}`);
   if (requireSubscriptions && data.subscriptions?.length !== SCENARIO_COUNT - 1) {
-    throw new Error("Derived rankings require all 16 subscription scenarios.");
+    throw new Error("Derived rankings require all four subscription scenarios.");
   }
   checkDerivedIndexes(data);
   for (const scenario of data.subscriptions ?? []) checkDerivedIndexes({ ...data, ...scenario });

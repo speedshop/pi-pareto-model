@@ -711,11 +711,24 @@ __SOURCE_BRAND__
     <div class="summary-axes" id="summary-axes"></div>
   </div>
 
-  <script>
+  <script type="module">
 __RANKING_MODULE__
 
-    const mapData = __PRESET_MAP_DATA__;
     const strings = __STRINGS__;
+
+    async function loadMapData(url) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+      } catch (error) {
+        const message = htmlElement("p", { role: "alert" }, t("dataLoadError", { message: error.message }));
+        document.querySelector(".controls").replaceChildren(message);
+        throw error;
+      }
+    }
+
+    const mapData = await loadMapData(__PRESET_MAP_DATA_URL__);
     const { catalog, variants } = mapData;
     const derived = mapData.kind === "derived-rankings-v3";
     if (derived) {
