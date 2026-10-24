@@ -70,8 +70,8 @@ The build:
 | `--strings PATH` | Override page text with keys from this JSON file. See [Change the text](#change-the-text) |
 | `--allow-restricted` | Build a private measured page from a restricted catalog; do not publish it |
 | `--derived` | Precompute full rank orders and dominance relationships without publishing measurements |
-| `--export-rankings PATH` | With `--derived`, write the validated measurement-free snapshot |
-| `--rankings PATH` | Build from a validated measurement-free snapshot instead of a raw catalog |
+| `--export-rankings PATH` | With `--derived`, write the base snapshot and 15 subscription sibling snapshots |
+| `--rankings PATH` | Build from a base snapshot and its 15 subscription siblings instead of a raw catalog |
 | `--help` | Show the options |
 
 ### Redistribution
@@ -100,9 +100,13 @@ Before the first deploy, set **Settings → Pages → Build and deployment → S
 
 ## AA-derived edition
 
-The AA edition uses Speedshop's privately computed rank orders, not a copy of AA's leaderboard rankings. It retains triangle selection at quarter-step resolution, creator filtering, and search. It publishes model names and reasoning labels, full orderings for all 1,225 priority mixes, dominance relationships for all seven nonempty axis combinations, and source metadata. It does not publish AA measurements, adjustment factors, metric provenance, normalization constants, or numeric regret scores. The top-model card and table omit measurement columns, including on mobile. This edition has no **Why this model?** dropdowns.
+The AA edition uses Speedshop's privately computed rank orders, not a copy of AA's leaderboard rankings. It retains triangle selection at quarter-step resolution, creator filtering, and search. It publishes model names and reasoning labels, full orderings for all 1,225 priority mixes, dominance relationships for all seven nonempty axis combinations, and source metadata. It does not publish AA measurements, benchmark adjustment factors, metric provenance, normalization constants, or numeric regret scores. The top-model card and table omit measurement columns, including on mobile. This edition has no **Why this model?** dropdowns.
 
 Creator filters recalculate the frontier among the checked creators using the published dominance relationships. Models dominated in the Full Catalog can join the frontier when their dominators are unchecked. The triangle and table use this selected frontier, while rankings retain the same Full Catalog normalization reference as the measured edition. **Show dominated** is enabled by default and includes all other selected models below the ranked frontier, labeled with a selected model that dominates them. Uncheck it to see only frontier models. No numeric measurements are displayed.
+
+**My subscriptions** offers independent checkboxes for Anthropic, OpenAI, Google, and SpaceX (the catalog's SpaceXAI/xAI Grok models). Checking a provider assumes five times better cost value: the private calculation divides that provider's models' estimated costs by five before recomputing the frontier and ranking. This is a rough user-selected assumption, not measured subscription pricing or a promise of access to every model. All 16 combinations are precomputed, including no subscriptions. Creator filtering still works within each scenario; normalization uses that scenario's Full Catalog frontier. Smart and Time measurements do not change. Subscriptions start unchecked on each page load. The measured DeepSWE edition does not offer these controls.
+
+The extra scenarios reveal additional relative ordering and dominance information, but not source measurements. The browser still receives one self-contained HTML file with all scenarios embedded; no additional data requests are needed.
 
 Build the current snapshot without accessing the private source:
 
@@ -117,7 +121,7 @@ To refresh it, first obtain the private catalog locally and keep it in a gitigno
 mise run refresh:aa --catalog tmp/aa-catalog.json
 ```
 
-This privately computes rankings, writes `data/aa-rankings.json`, and builds and verifies `preset-map-aa.html`. Commit only the derived snapshot, never the raw catalog or a page built with `--allow-restricted`. The public Pages workflow rebuilds from the committed snapshot and verifies its embedded data against an allowlist schema before uploading. Unknown fields, including a `metrics` object, fail the build. Daily publishing still refreshes DeepSWE automatically; AA updates require a newly generated snapshot and a commit.
+This privately computes rankings, writes the base snapshot `data/aa-rankings.json` and 15 sibling files named `data/aa-rankings.json.subscriptions-1.json` through `data/aa-rankings.json.subscriptions-15.json`, and builds and verifies `preset-map-aa.html`. Subscription masks use Anthropic = 1, OpenAI = 2, Google = 4, and SpaceX = 8; combinations add these values. All sibling files must be present and share the same catalog metadata and model labels. Commit all 16 derived snapshots together, never the raw catalog or a page built with `--allow-restricted`. The public Pages workflow rebuilds from the committed snapshot and verifies its embedded data against an allowlist schema before uploading. Unknown fields, including a `metrics` object, fail the build. Daily publishing still refreshes DeepSWE automatically; AA updates require a newly generated snapshot and a commit.
 
 The AA chart includes the logo reproduced from [AA's website](https://artificialanalysis.ai/). Visible attribution says "Based on data from Artificial Analysis," identifies Speedshop as the author of the visualization and rankings, and disclaims AA endorsement. The source terms remain linked. Publishing this edition relies on the chart/Derived Data permissions in [AA's Data Platform Terms](https://artificialanalysiscdn.com/legal/ProDataPlatformTerms.pdf); removing measurements is not a waiver of those terms or a claim that AA has approved an interactive selection service. The interaction with the competitive-use restriction remains unresolved.
 

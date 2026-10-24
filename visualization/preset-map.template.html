@@ -241,6 +241,8 @@
     }
 
     .creators .caption { margin-top: 8px; }
+    #subscriptions .caption { margin: 0 0 8px; }
+    #subscription-list { gap: 8px 14px; }
 
     .creator-actions {
       display: flex;
@@ -666,6 +668,11 @@ __SOURCE_BRAND__
           <legend class="visually-hidden" data-i18n="creatorsLegend"></legend>
         </fieldset>
       </details>
+      <div id="subscriptions" hidden>
+        <p class="eyebrow" id="subscriptions-heading" data-i18n="subscriptionsHeading"></p>
+        <p class="caption" data-i18n="subscriptionsHint"></p>
+        <fieldset class="creator-list" id="subscription-list" aria-labelledby="subscriptions-heading"></fieldset>
+      </div>
       <hr class="divider">
       <div>
         <div class="table-tools">
@@ -710,11 +717,12 @@ __RANKING_MODULE__
     const mapData = __PRESET_MAP_DATA__;
     const strings = __STRINGS__;
     const { catalog, variants } = mapData;
-    const derived = mapData.kind === "derived-rankings-v2";
+    const derived = mapData.kind === "derived-rankings-v3";
     if (derived) {
       document.body.classList.add("rankings-only");
       document.querySelectorAll("thead th:nth-child(n + 3), #winner-metrics, #summary-axes").forEach((element) => element.remove());
       document.querySelector("#show-dominated").checked = true;
+      document.querySelector("#subscriptions").hidden = false;
     }
 
     function t(key, vars = {}) {
@@ -938,16 +946,21 @@ __RANKING_MODULE__
     let eligible = variants.filter((variant) => selectedCreators.has(variant.creator));
 
     const variantIndexes = new Map(variants.map((variant, index) => [variant.id, index]));
+    let subscriptionMask = 0;
+
+    function activeScenario() {
+      return subscriptionMask === 0 ? mapData : mapData.subscriptions[subscriptionMask - 1];
+    }
 
     function derivedDominator(variant, axes) {
-      return mapData.dominators[axes.join(",")][variantIndexes.get(variant.id)]
+      return activeScenario().dominators[axes.join(",")][variantIndexes.get(variant.id)]
         .map((index) => variants[index]).find((other) => selectedCreators.has(other.creator));
     }
 
     function ranked(allocation) {
       const axes = enabledAxes(allocation);
       if (derived) {
-        const order = mapData.orders[`${allocation.smart},${allocation.fast}`]
+        const order = activeScenario().orders[`${allocation.smart},${allocation.fast}`]
           .map((index) => variants[index]).filter((variant) => selectedCreators.has(variant.creator));
         const frontier = order.filter((variant) => !derivedDominator(variant, axes));
         return { axes, frontier, ranking: frontier, order };
@@ -1529,6 +1542,22 @@ __RANKING_MODULE__
       assignWinners();
       placeRegionLabels();
       render();
+    }
+
+    if (derived) {
+      SUBSCRIPTIONS.forEach((subscription, index) => {
+        const label = htmlElement("label");
+        const box = htmlElement("input", { type: "checkbox", value: String(1 << index) });
+        box.addEventListener("change", () => {
+          subscriptionMask = [...document.querySelectorAll("#subscription-list input:checked")]
+            .reduce((mask, input) => mask | Number(input.value), 0);
+          assignWinners();
+          placeRegionLabels();
+          render();
+        });
+        label.append(box, t("subscriptionLabel", { name: subscription.name }));
+        document.querySelector("#subscription-list").append(label);
+      });
     }
 
     document.querySelector("#creators-all").addEventListener("click", () => setCreators(new Set(creatorNames)));

@@ -7,7 +7,7 @@ import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
-import { deriveRankings, validateDerivedRankings } from "../src/derived-rankings.js";
+import { deriveRankings, exportDerivedRankings, loadDerivedRankings, validateDerivedRankings } from "../src/derived-rankings.js";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const DEFAULT_OUTPUT = join(ROOT, "preset-map.html");
@@ -66,8 +66,8 @@ Options:
   --strings PATH        Override page text with keys from this JSON file
   --allow-restricted    Build a private measured page from a restricted catalog
   --derived             Publish full rank orders and dominance relationships, not measurements
-  --export-rankings PATH Write the validated measurement-free snapshot with --derived
-  --rankings PATH       Build from a validated measurement-free snapshot
+  --export-rankings PATH Write the base snapshot and 15 subscription siblings with --derived
+  --rankings PATH       Build from a base snapshot and its 15 subscription siblings
   --help                Show this help
 `);
 }
@@ -219,7 +219,7 @@ async function main() {
   const derived = Boolean(options.derived || options.rankings);
   const [strings, catalog, template, rankingModule] = await Promise.all([
     loadStrings(options.strings, derived),
-    options.rankings ? readFile(options.rankings, "utf8").then(JSON.parse) : loadCatalog(options),
+    options.rankings ? loadDerivedRankings(options.rankings) : loadCatalog(options),
     readFile(options.template, "utf8"),
     readFile(RANKING_MODULE, "utf8"),
   ]);
@@ -249,7 +249,7 @@ async function main() {
     const embedded = JSON.parse(html.match(/const mapData = (.*);\n/)[1]);
     await validateDerivedRankings(embedded);
   }
-  if (options.exportRankings) await writeFile(options.exportRankings, `${JSON.stringify(data)}\n`, "utf8");
+  if (options.exportRankings) await exportDerivedRankings(options.exportRankings, data);
   await writeFile(options.output, html, "utf8");
   console.log(`Built ${options.output} with ${data.variants.length} variants from ${data.catalog.name}${derived ? " (derived rankings only; no source measurements)" : ""}.`);
 }

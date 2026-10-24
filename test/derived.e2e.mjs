@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { loadDerivedRankings } from "../src/derived-rankings.js";
+import { AXES, paretoFront, rankVariants } from "../src/ranking.js";
 
 const root = resolve(import.meta.dirname, "..");
 mkdirSync(join(root, "tmp"), { recursive: true });
@@ -21,6 +23,7 @@ try {
   };
   catalog.catalog.provenance = { privateMarker: "PRIVATE_SOURCE_PAYLOAD_MUST_NOT_PUBLISH" };
   catalog.variants.forEach((variant, index) => {
+    variant.creator = ["Anthropic", "OpenAI", "Google", "SpaceXAI"][index % 4];
     variant.metrics = { smart: 25.718392 + index, fast: 42.928371 + index, cheap: 0.008174 + index };
     variant.provenance.privateMarker = "PRIVATE_TRIAL_DETAILS_MUST_NOT_PUBLISH";
   });
@@ -34,9 +37,30 @@ try {
 
   run(build, ["--catalog", source, "--derived", "--export-rankings", snapshot, "--output", page]);
   const html = readFileSync(page, "utf8");
-  const data = JSON.parse(readFileSync(snapshot, "utf8"));
+  const data = await loadDerivedRankings(snapshot);
   assert.deepEqual(JSON.parse(html.match(/const mapData = (.*);\n/)[1]), data);
-  assert.equal(data.kind, "derived-rankings-v2");
+  assert.equal(data.kind, "derived-rankings-v3");
+  assert.equal(data.subscriptions.length, 15);
+  let changed = false;
+  for (let mask = 0; mask < 16; mask += 1) {
+    const scenario = mask === 0 ? data : data.subscriptions[mask - 1];
+    const variants = catalog.variants.map((variant, index) => ({
+      id: variant.id, name: variant.displayName,
+      metrics: { ...variant.metrics, cheap: variant.metrics.cheap / ((mask & (1 << (index % 4))) ? 5 : 1) },
+    }));
+    for (const [key, order] of Object.entries(scenario.orders)) {
+      const [smart, fast] = key.split(",").map(Number);
+      const allocation = { smart, fast, cheap: 12 - smart - fast };
+      const axes = AXES.filter((axis) => allocation[axis] > 0);
+      const reference = paretoFront(variants, axes);
+      const expected = rankVariants(variants, allocation, axes, reference).map((variant) => variant.id);
+      assert.deepEqual(order.map((index) => data.variants[index].id), expected);
+      changed ||= JSON.stringify(order) !== JSON.stringify(data.orders[key]);
+      const frontier = order.filter((index) => !scenario.dominators[axes.join(",")][index].length);
+      assert.deepEqual(frontier.map((index) => data.variants[index].id), rankVariants(reference, allocation, axes, reference).map((variant) => variant.id));
+    }
+  }
+  assert.equal(changed, true, "Subscription costs must change at least one ranking");
   assert.equal(Object.keys(data.orders).length, 1225);
   assert.equal(Object.keys(data.dominators).length, 7);
   for (const order of Object.values(data.orders)) assert.equal(order.length, catalog.variants.length);
@@ -49,13 +73,15 @@ try {
     assert.equal(readFileSync(snapshot, "utf8").includes(marker), false);
   }
   for (const variant of catalog.variants) {
-    for (const value of Object.values(variant.metrics)) assert.equal(html.includes(String(value)), false);
+    for (const value of [...Object.values(variant.metrics), variant.metrics.cheap / 5]) assert.equal(html.includes(String(value)), false);
   }
   run(check, [page]);
   const rebuilt = join(directory, "rebuilt.html");
   run(build, ["--rankings", snapshot, "--output", rebuilt]);
   assert.equal(readFileSync(rebuilt, "utf8"), html);
 
+  const complete = structuredClone(data);
+  delete data.subscriptions;
   data.variants[0].metrics = catalog.variants[0].metrics;
   const unsafe = join(directory, "unsafe.json");
   writeFileSync(unsafe, JSON.stringify(data));
@@ -63,7 +89,7 @@ try {
   assert.notEqual(rejected.status, 0);
   assert.match(rejected.stderr, /Invalid derived rankings/);
   const tampered = join(directory, "tampered.html");
-  writeFileSync(tampered, html.replace(/const mapData = .*;\n/, `const mapData = ${JSON.stringify(data)};\n`));
+  writeFileSync(tampered, html.replace(/const mapData = .*;\n/, `const mapData = ${JSON.stringify({ ...complete, variants: data.variants })};\n`));
   assert.notEqual(spawnSync(process.execPath, [check, tampered]).status, 0);
 
   delete data.variants[0].metrics;
@@ -78,6 +104,13 @@ try {
   const invalidDominators = spawnSync(process.execPath, [build, "--rankings", unsafe, "--output", rebuilt], { encoding: "utf8" });
   assert.notEqual(invalidDominators.status, 0);
   assert.match(invalidDominators.stderr, /Invalid derived dominators/);
+  const damagedScenario = `${snapshot}.subscriptions-15.json`;
+  const damaged = JSON.parse(readFileSync(damagedScenario, "utf8"));
+  damaged.orders["0,0"].pop();
+  writeFileSync(damagedScenario, JSON.stringify(damaged));
+  const invalidScenario = spawnSync(process.execPath, [build, "--rankings", snapshot, "--output", rebuilt], { encoding: "utf8" });
+  assert.notEqual(invalidScenario.status, 0);
+  assert.match(invalidScenario.stderr, /Invalid derived ranking order/);
   console.log("Derived-page CLI end-to-end checks passed: restricted source stays private, safe snapshots rebuild identically, and unsafe artifacts fail closed.");
 } finally {
   rmSync(directory, { recursive: true, force: true });
